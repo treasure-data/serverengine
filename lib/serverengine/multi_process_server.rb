@@ -78,7 +78,7 @@ module ServerEngine
         end
 
       ensure
-        w.close
+        w.after_start
       end
 
       return WorkerMonitor.new(w, wid, pmon)

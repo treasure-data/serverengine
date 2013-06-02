@@ -26,7 +26,7 @@ module ServerEngine
       begin
         thread = Thread.new(&w.method(:main))
       ensure
-        w.close
+        w.after_start
       end
 
       return WorkerMonitor.new(w, thread)

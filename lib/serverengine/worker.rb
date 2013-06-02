@@ -41,7 +41,7 @@ module ServerEngine
     def reload
     end
 
-    def close
+    def after_start
     end
 
     def install_signal_handlers
@@ -65,8 +65,6 @@ module ServerEngine
 
     def main
       run
-    ensure
-      close
     end
   end
 

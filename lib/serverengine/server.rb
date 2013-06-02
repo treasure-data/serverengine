@@ -39,7 +39,7 @@ module ServerEngine
       nil
     end
 
-    def close
+    def after_start
     end
 
     def restart(stop_graceful)
@@ -77,9 +77,6 @@ module ServerEngine
       ensure
         after_run
       end
-
-    ensure
-      close
     end
 
     module WorkerInitializer

@@ -201,7 +201,7 @@ module ServerEngine
 
         return m
       ensure
-        s.close
+        s.after_start
       end
     end
 

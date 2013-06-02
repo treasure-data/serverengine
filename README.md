@@ -264,33 +264,33 @@ se.run
 ### Worker module
 
 - interface
-  - **initialize**
-  - **before_fork** (available only if `worker_type` is "process")
-  - **run**
-  - **stop**
-  - **reload**
-  - **close**
+  - `initialize` is called in the parent process (or thread) in contrast to the other methods
+  - `before_fork` is called before fork for each worker process (available only if `worker_type` is "process")
+  - `run` is the required method
+  - `stop` is called when TERM signal is received
+  - `reload` is called when USR2 signal is received
+  - `after_start` is called after starting the worker process in the parent process (or thread) (available only if `worker_type` is "process" or "thread")
 - api
-  - **server**
-  - **config**
-  - **logger**
-  - **worker_id**
+  - `server` server instance
+  - `config` configuration
+  - `logger` logger
+  - `worker_id` serial id of workers beginning from 0
 
 
 ### Server module
 
 - interface
-  - **initialize**
-  - **before_run**
-  - **after_run**
-  - **close**
+  - `initialize` is called in the parent process in contrast to the other methods
+  - `before_run` is called before starting workers
+  - `after_run` is called before shutting down
+  - `after_start` is called after starting the server process in the parent process
 - hook points (call `super` in these methods)
-  - **reload_config**
-  - **stop(stop_graceful)**
-  - **restart(stop_graceful)**
+  - `reload_config`
+  - `stop(stop_graceful)`
+  - `restart(stop_graceful)`
 - api
-  - **config**
-  - **logger**
+  - `config` configuration
+  - `logger` logger
 
 
 ## Worker types

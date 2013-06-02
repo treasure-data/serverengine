@@ -50,8 +50,8 @@ shared_context 'test server and worker' do
       incr_test_state :server_after_run
     end
 
-    def close
-      incr_test_state :server_close
+    def after_start
+      incr_test_state :server_after_start
     end
 
     def stop(stop_graceful)
@@ -110,8 +110,8 @@ shared_context 'test server and worker' do
       incr_test_state :worker_reload
     end
 
-    def close
-      incr_test_state :worker_close
+    def after_start
+      incr_test_state :worker_after_start
     end
   end
 

@@ -16,7 +16,7 @@ describe ServerEngine::Supervisor do
       wait_for_fork
 
       test_state(:server_before_run).should == 1
-      test_state(:server_close).should == 1  # parent
+      test_state(:server_after_start).should == 1  # parent
     ensure
       sv.stop(true)
       t.join
@@ -27,7 +27,7 @@ describe ServerEngine::Supervisor do
     test_state(:server_restart).should == 0
 
     test_state(:server_after_run).should == 1
-    test_state(:server_close).should == 2  # parent and child
+    test_state(:server_after_start).should == 1
   end
 
   it 'immediate stop' do
@@ -43,7 +43,7 @@ describe ServerEngine::Supervisor do
     test_state(:server_stop).should == 1
     test_state(:server_stop_immediate).should == 1
     test_state(:server_after_run).should == 1
-    test_state(:server_close).should == 2
+    test_state(:server_after_start).should == 1
   end
 
   it 'graceful restart' do
@@ -64,7 +64,7 @@ describe ServerEngine::Supervisor do
 
     test_state(:server_before_run).should == 1
     test_state(:server_after_run).should == 1
-    test_state(:server_close).should == 2
+    test_state(:server_after_start).should == 1
   end
 
   it 'immediate restart' do
@@ -85,7 +85,7 @@ describe ServerEngine::Supervisor do
 
     test_state(:server_before_run).should == 1
     test_state(:server_after_run).should == 1
-    test_state(:server_close).should == 2
+    test_state(:server_after_start).should == 1
   end
 
   it 'reload' do
