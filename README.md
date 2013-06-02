@@ -34,6 +34,8 @@ ServerEngine is a framework to implement robust multiprocess servers like Unicor
 What you need to implement at least is a worker module which has `run` and `stop` methods.
 
 ```ruby
+require 'serverengine'
+
 module MyWorker
   def run
     until @stop
@@ -185,12 +187,16 @@ This feature is useful to minimize downtime where workers take long time to comp
 Note that network servers (which listen sockets) shouldn't use live restart because it causes "Address already in use" error. Instead, simply use `worker_type=process` configuration and send `USR1` to restart only workers. USR1 signal doesn't restart server (by default. See also `restart_server_process` parameter). Restarting workers don't wait for completion of all running workers.
 
 
-### Making dynamic configuration reloading possible
+### Dynamic configuration reloading
 
 Robust servers should not restart only to update configuration parameters.
 
 ```ruby
 module MyWorker
+  def initialize
+    reload
+  end
+
   def reload
     @message = config[:message] || "Awesome work!"
     @sleep = config[:sleep] || 1
@@ -209,9 +215,9 @@ module MyWorker
 end
 
 se = ServerEngine.create(nil, MyWorker) do
-  YAML.load_file(config).merge({
+  YAML.load_file("config.yml").merge({
     :daemonize => true,
-    :worker_type => 'process'
+    :worker_type => 'process',
   })
 end
 se.run
@@ -290,6 +296,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **server_process_name** changes process name ($0) of server process (not dynamic reloadable)
   - **restart_server_process** restarts server process when it receives USR1 or HUP signal. (default: false) (not dynamic reloadable)
   - **enable_detach** enables INT signal (default: true) (not dynamic reloadable)
+  - **exit_on_detach** exits supervisor after detaching server process instead of restarting it (default: false) (not dynamic reloadable)
   - **disable_reload** disables USR2 signal (default: false) (not dynamic reloadable)
   - **serverrestart_wait** sets wait time before restarting server after last restarting (default: 1.0)
   - **server_detach_wait** sets wait time before starting live restart (default: 10.0)

@@ -44,6 +44,7 @@ module ServerEngine
 
       @restart_server_process = !!@config[:restart_server_process]
       @enable_detach = !!@config[:enable_detach]
+      @exit_on_detach = !!@config[:exit_on_detach]
       @disable_reload = !!@config[:disable_reload]
     end
 
@@ -142,21 +143,27 @@ module ServerEngine
 
       @pmon = start_server
 
-      # keep the child process alive in this loop
-      until @detach_flag.wait(0.5)
-        if stat = try_join
-          return if @stop   # supervisor stoppped explicitly
+      while true
+        # keep the child process alive in this loop
+        until @detach_flag.wait(0.5)
+          if stat = try_join
+            return if @stop   # supervisor stoppped explicitly
 
-          # child process died unexpectedly.
-          # sleep @server_detach_wait sec and reboot process
-          @pmon = reboot_server
+            # child process died unexpectedly.
+            # sleep @server_detach_wait sec and reboot process
+            @pmon = reboot_server
+          end
         end
-      end
 
-      wait_until = Time.now + @server_detach_wait
-      while (w = wait_until - Time.now) > 0
-        break if try_join
-        sleep [0.5, w].min
+        wait_until = Time.now + @server_detach_wait
+        while (w = wait_until - Time.now) > 0
+          break if try_join
+          sleep [0.5, w].min
+        end
+
+        return if @exit_on_detach
+
+        @detach_flag.reset!
       end
     end
 

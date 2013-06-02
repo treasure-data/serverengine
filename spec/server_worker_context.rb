@@ -30,7 +30,7 @@ shared_context 'test server and worker' do
   end
 
   def wait_for_stop
-    sleep 0.5
+    sleep 0.8
   end
 
   def wait_for_restart

@@ -9,6 +9,8 @@ describe ServerEngine::Daemon do
     test_state(:server_initialize).should == 1
 
     pid = File.read('tmp/pid').to_i
+    wait_for_fork
+
     Process.kill(:TERM, pid)
     wait_for_stop
 
