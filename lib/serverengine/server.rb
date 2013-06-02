@@ -26,8 +26,6 @@ module ServerEngine
       @stop = false
 
       super(load_config_proc, &block)
-
-      reload_config
     end
 
     def before_run

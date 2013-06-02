@@ -28,8 +28,6 @@ module ServerEngine
 
       super(load_config_proc, &block)
 
-      reload_config
-
       @daemonize = @config.fetch(:daemonize, false)
 
       if @config.fetch(:supervisor, false)

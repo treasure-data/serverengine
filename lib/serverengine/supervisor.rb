@@ -37,8 +37,6 @@ module ServerEngine
 
       super(load_config_proc, &block)
 
-      reload_config
-
       @create_server_proc = Supervisor.create_server_proc(server_module, worker_module, @config)
       @server_process_name = @config[:server_process_name]
 

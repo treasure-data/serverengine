@@ -230,7 +230,7 @@ Send `USR2` signal to reload configuration file.
 
 ### BlockingFlag
 
-`ServerEngine::BlockingFlag` is recommended to stop workers because `stop` methods is called by a different thread from the `run` thread.
+`ServerEngine::BlockingFlag` is recommended to stop workers because `stop` method is called by a different thread from the `run` thread.
 
 ```ruby
 module MyWorker
@@ -298,7 +298,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **enable_detach** enables INT signal (default: true) (not dynamic reloadable)
   - **exit_on_detach** exits supervisor after detaching server process instead of restarting it (default: false) (not dynamic reloadable)
   - **disable_reload** disables USR2 signal (default: false) (not dynamic reloadable)
-  - **serverrestart_wait** sets wait time before restarting server after last restarting (default: 1.0)
+  - **server_restart_wait** sets wait time before restarting server after last restarting (default: 1.0)
   - **server_detach_wait** sets wait time before starting live restart (default: 10.0)
 - Multithread server and multiprocess server: available only when `worker_type` is thread or process
   - **workers** sets number of workers (default: 1)

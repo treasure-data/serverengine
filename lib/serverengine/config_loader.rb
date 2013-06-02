@@ -28,6 +28,8 @@ module ServerEngine
           @load_config_proc = load_config_proc
         end
       end
+
+      reload_config
     end
 
     attr_reader :config
