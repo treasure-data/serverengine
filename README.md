@@ -315,6 +315,8 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **log_stdout** hooks STDERR to log file (default: true) (not dynamic reloadable)
   - **logger_class** class of the logger instance (default: ServerEngine::DaemonLogger)
 
+---
+
 ```
 Author:    Sadayuki Furuhashi
 Copyright: Copyright (c) 2012-2013 FURUHASHI Sadayuki
