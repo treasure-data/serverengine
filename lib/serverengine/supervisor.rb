@@ -135,6 +135,7 @@ module ServerEngine
         st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
         st.trap(Daemon::Signals::RELOAD) { s.reload }
         st.trap(Daemon::Signals::DETACH) { s.detach(true) }
+        st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
       end
     end
 

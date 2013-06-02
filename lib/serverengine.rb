@@ -17,6 +17,8 @@
 #
 module ServerEngine
 
+  require 'sigdump'
+
   here = File.expand_path(File.dirname(__FILE__))
 
   {
@@ -39,7 +41,7 @@ module ServerEngine
   }
 
   [
-    'serverengine/utils'
+    'serverengine/utils',
   ].each {|v|
     require File.join(here, v)
   }

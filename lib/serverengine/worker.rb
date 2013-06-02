@@ -58,6 +58,8 @@ module ServerEngine
           w.reload
         }
         st.trap(Daemon::Signals::DETACH) { w.stop }
+
+        st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
       end
     end
 

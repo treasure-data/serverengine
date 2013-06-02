@@ -57,7 +57,7 @@ module ServerEngine
       IMMEDIATE_RESTART = :HUP
       RELOAD = :USR2
       DETACH = :INT
-      #DUMP = :CONT
+      DUMP = :CONT
     end
 
     def self.change_privilege(user, group)
