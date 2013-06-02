@@ -43,7 +43,7 @@ module ServerEngine
       @server_process_name = @config[:server_process_name]
 
       @restart_server_process = !!@config[:restart_server_process]
-      @disable_detach = !!@config[:disable_detach]
+      @enable_detach = !!@config[:enable_detach]
       @disable_reload = !!@config[:disable_reload]
     end
 
@@ -118,9 +118,11 @@ module ServerEngine
     end
 
     def detach(stop_graceful)
-      unless @disable_detach
+      if @enable_detach
         @detach_flag.set!
         send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+      else
+        stop(stop_graceful)
       end
     end
 

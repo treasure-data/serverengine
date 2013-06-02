@@ -23,7 +23,7 @@ module ServerEngine
     def initialize(dev, config={})
       @hook_stdout = config.fetch(:log_stdout, true)
       @hook_stderr = config.fetch(:log_stderr, true)
-      rotate_age = config[:log_rotate_age] || 0
+      rotate_age = config[:log_rotate_age] || 5
       rotate_size = config[:log_rotate_size] || 1048576
 
       if dev.is_a?(String)

@@ -20,14 +20,9 @@ module ServerEngine
   class MultiWorkerServer < Server
     def initialize(worker_module, load_config_proc={}, &block)
       @monitors = []
-
-      super(worker_module, load_config_proc, &block)
-
-      @start_worker_delay = @config[:start_worker_delay] || 0
-      @start_worker_delay_rand = @config[:start_worker_delay_rand] || 0.2
       @last_start_worker_time = 0
 
-      scale_workers(@config[:workers] || 1)
+      super(worker_module, load_config_proc, &block)
     end
 
     def stop(stop_graceful)
@@ -77,6 +72,9 @@ module ServerEngine
 
     def reload_config
       super
+
+      @start_worker_delay = @config[:start_worker_delay] || 0
+      @start_worker_delay_rand = @config[:start_worker_delay_rand] || 0.2
 
       if w = @config[:workers]
         scale_workers(w)
