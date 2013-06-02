@@ -160,7 +160,7 @@ This feature is useful to minimize downtime where workers take long time to comp
 | Supervisor |----|  Server  |----| Worker(s) |
 +------------+    +----------+    +-----------+
 
-# 2. receives SIGINT and waits for shutdown of the erver for server_detach_wait
+# 2. receives SIGINT and waits for shutdown of the server for server_detach_wait
 +------------+    +----------+    +-----------+
 | Supervisor |    |  Server  |----| Worker(s) |
 +------------+    +----------+    +-----------+
@@ -174,7 +174,7 @@ This feature is useful to minimize downtime where workers take long time to comp
                \--|  Server  |----| Worker(s) |
                   +----------+    +-----------+
 
-# 4. old server exits
+# 4. old server exits eventually
 +------------+
 | Supervisor |\
 +------------+ |
@@ -257,6 +257,40 @@ se = ServerEngine.create(nil, MyWorker) do
 end
 se.run
 ```
+
+
+## Module methods
+
+### Worker module
+
+- interface
+  - **initialize**
+  - **before_fork** (available only if `worker_type` is "process")
+  - **run**
+  - **stop**
+  - **reload**
+  - **close**
+- api
+  - **server**
+  - **config**
+  - **logger**
+  - **worker_id**
+
+
+### Server module
+
+- interface
+  - **initialize**
+  - **before_run**
+  - **after_run**
+  - **close**
+- hook points (call `super` in these methods)
+  - **reload_config**
+  - **stop(stop_graceful)**
+  - **restart(stop_graceful)**
+- api
+  - **config**
+  - **logger**
 
 
 ## Worker types
