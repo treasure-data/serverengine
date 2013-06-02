@@ -278,7 +278,7 @@ ServerEngine supports 3 worker types:
 - **INT:** detach process for live restarting (available only when `supervisor` and `enable_detach` parameters are true. otherwise graceful shutdown)
 - **CONT:** dump stacktrace and memory information to /tmp/sigdump-<pid>.log file
 
-Immediate shutdown and restart send SIGQUIT signal to worker processes which killes the processes.
+Immediate shutdown and restart send SIGQUIT signal to worker processes which kills the processes.
 Graceful shutdown and restart call `Worker#stop` method and wait for completion of `Worker#run` method.
 
 
