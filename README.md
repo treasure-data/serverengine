@@ -6,7 +6,7 @@ ServerEngine is a framework to implement robust multiprocess servers like Unicor
 
 ```
                   Heartbeat via pipe
-                      & Auto-restart
+                      & auto-restart
                  /                \               ---+
 +------------+  /   +----------+   \  +--------+     |
 | Supervisor |------|  Server  |------| Worker |     |
@@ -253,27 +253,27 @@ se.run
 ```
 
 
-## Signals
-
-- **TERM:** graceful shutdown
-- **QUIT:** immediate shutdown (available only when `worker_type` is *process*)
-- **USR1:** graceful restart
-- **HUP:** immediate restart (available only when `worker_type` is *process*)
-- **USR2:** reload config file and reopen log file
-- **INT:** detach process for live restarting (available only when `supervisor` and `enable_detach` parameters are true. otherwise graceful shutdown)
-- **CONT:** dump stacktrace and memory information to /tmp/sigdump-<pid>.log file
-
-Immediate shutdown and restart send SIGQUIT signal to worker processes. By default, SIGQUIT kills the process.
-Graceful shutdown and restart call `Worker#stop` method and wait for completion of `Worker#run` method.
-
-
 ## Worker types
 
 ServerEngine supports 3 worker types:
 
 - **embedded**: uses a thread to run worker module (default). This type doesn't support immediate shutdown and immediate restart.
 - **thread**: uses threads to run worker modules. This type doesn't support immediate shutdown and immediate restart.
-- **process**: uses processes to run worker modules. This type doesn't work on Win32 system.
+- **process**: uses processes to run worker modules. This type doesn't work on Win32 platform.
+
+
+## Signals
+
+- **TERM:** graceful shutdown
+- **QUIT:** immediate shutdown (available only when `worker_type` is "process")
+- **USR1:** graceful restart
+- **HUP:** immediate restart (available only when `worker_type` is "process")
+- **USR2:** reload config file and reopen log file
+- **INT:** detach process for live restarting (available only when `supervisor` and `enable_detach` parameters are true. otherwise graceful shutdown)
+- **CONT:** dump stacktrace and memory information to /tmp/sigdump-<pid>.log file
+
+Immediate shutdown and restart send SIGQUIT signal to worker processes which killes the processes.
+Graceful shutdown and restart call `Worker#stop` method and wait for completion of `Worker#run` method.
 
 
 ## Configuration
@@ -297,7 +297,7 @@ ServerEngine supports 3 worker types:
   - **workers** sets number of workers (default: 1)
   - **start_worker_delay** sets wait time before starting a new worker (default: 0)
   - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2)
-- Multiprocess server: available only when `worker_type` is *process*
+- Multiprocess server: available only when `worker_type` is "process"
   - **worker_heartbeat_interval**
   - **worker_heartbeat_timeout**
   - **worker_graceful_kill_interval**
@@ -307,7 +307,7 @@ ServerEngine supports 3 worker types:
   - **worker_immediate_kill_interval_increment**
   - **worker_immediate_kill_timeout**
 - Logger
-  - **log** sets path to log file. Set '-' for STDOUT (default: STDERR)
+  - **log** sets path to log file. Set "-" for STDOUT (default: STDERR)
   - **log_level** log level: debug, info, warn, error or fatal. (default: debug)
   - **log_rotate_age** generations to keep rotated log files (default: 5) (not dynamic reloadable)
   - **log_rotate_size** sets the size to rotate log files (default: 1048576) (not dynamic reloadable)
@@ -315,9 +315,9 @@ ServerEngine supports 3 worker types:
   - **log_stdout** hooks STDERR to log file (default: true) (not dynamic reloadable)
   - **logger_class** class of the logger instance (default: ServerEngine::DaemonLogger)
 
-## Copyright
-
+```
 Author:    Sadayuki Furuhashi
 Copyright: Copyright (c) 2012-2013 FURUHASHI Sadayuki
 License:   Apache License, Version 2.0
+```
 
