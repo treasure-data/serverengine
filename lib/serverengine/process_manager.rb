@@ -35,15 +35,15 @@ module ServerEngine
 
       @auto_heartbeat = config.fetch(:auto_heartbeat, true)
 
-      case op = config.fetch(:abort_on_heartbeat_error, true)
+      case op = config[:on_heartbeat_error]
+      when nil
+        @heartbeat_error_proc = lambda {|t| }
       when Proc
         @heartbeat_error_proc = op
-      when true
+      when :abort
         @heartbeat_error_proc = lambda {|t| exit 1 }
-      when false
-        @heartbeat_error_proc = lambda {|t| }
       else
-        raise ArgumentError, "unexpected :abort_on_heartbeat_error option (expected Proc, true or false but got #{op.class})"
+        raise ArgumentError, "unexpected :on_heartbeat_error option (expected Proc, true or false but got #{op.class})"
       end
 
       configure(config)

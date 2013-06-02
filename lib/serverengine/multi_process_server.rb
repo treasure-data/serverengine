@@ -23,9 +23,9 @@ module ServerEngine
         auto_tick: false,
         graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
         auto_heartbeat: true,
-        abort_on_heartbeat_error: Proc.new do
+        on_heartbeat_error: Proc.new do
           @logger.fatal "parent process unexpectedly terminated"
-          exit! 1
+          exit 1
         end
       )
 

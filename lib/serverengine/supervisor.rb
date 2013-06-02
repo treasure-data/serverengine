@@ -32,7 +32,6 @@ module ServerEngine
         graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
         immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
         auto_heartbeat: true,
-        abort_on_heartbeat_error: false,
       )
 
       super(load_config_proc, &block)
