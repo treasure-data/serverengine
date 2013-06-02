@@ -19,8 +19,11 @@ module ServerEngine
 
   module ClassMethods
     def dump_uncaught_error(e)
-      # TODO message
       STDERR.write "Unexpected error #{e}\n"
+      e.backtrace.each {|bt|
+        STDERR.write "  #{bt}\n"
+      }
+      nil
     end
   end
 

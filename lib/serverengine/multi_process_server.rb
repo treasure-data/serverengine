@@ -40,12 +40,12 @@ module ServerEngine
       @pm.close
     end
 
-    private
-
     def logger=(logger)
       super
       @pm.logger = logger
     end
+
+    private
 
     def reload_config
       super

@@ -58,9 +58,6 @@ module ServerEngine
       nil
     end
 
-    attr_reader :config
-    attr_accessor :logger
-
     module ServerInitializer
       def initialize
         reload_config
@@ -75,7 +72,7 @@ module ServerEngine
       when 'process'
         server_class = MultiProcessServer
       when 'thread'
-        server_class = MultiWorkerServer
+        server_class = MultiThreadServer
       else
         raise ArgumentError, "unexpected :worker_type option #{wt}"
       end

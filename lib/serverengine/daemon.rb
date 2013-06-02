@@ -91,6 +91,7 @@ module ServerEngine
       begin
         exit main
       rescue
+        ServerEngine.dump_uncaught_error($!)
         exit 1  # TODO exit code
       end
     end
@@ -99,7 +100,8 @@ module ServerEngine
       unless @daemonize
         s = create_server(create_logger)
         s.install_signal_handlers
-        return s.main
+        s.main
+        return 0
       end
 
       rpipe, wpipe = IO.pipe

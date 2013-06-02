@@ -76,9 +76,7 @@ module ServerEngine
       @start_worker_delay = @config[:start_worker_delay] || 0
       @start_worker_delay_rand = @config[:start_worker_delay_rand] || 0.2
 
-      if w = @config[:workers]
-        scale_workers(w)
-      end
+      scale_workers(@config[:workers] || 1)
 
       nil
     end
