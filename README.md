@@ -155,17 +155,17 @@ You can restart a server process without waiting for completion of shutdown proc
 This feature is useful to minimize downtime where workers take long time to complete tasks.
 
 ```
-# 1. start server
+# 1. starts server
 +------------+    +----------+    +-----------+
 | Supervisor |----|  Server  |----| Worker(s) |
 +------------+    +----------+    +-----------+
 
-# 2. detach (SIGINT) and waits for completion for several seconds
+# 2. receives SIGINT and waits for shutdown of the erver for server_detach_wait
 +------------+    +----------+    +-----------+
 | Supervisor |    |  Server  |----| Worker(s) |
 +------------+    +----------+    +-----------+
 
-# 3. start new server if the server doesn't exit in a short time
+# 3. starts new server if the server doesn't exit in server_detach_wait time
 +------------+    +----------+    +-----------+
 | Supervisor |\   |  Server  |----| Worker(s) |
 +------------+ |  +----------+    +-----------+
@@ -305,6 +305,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **start_worker_delay** sets wait time before starting a new worker (default: 0)
   - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2)
 - Multiprocess server: available only when `worker_type` is "process"
+  - **worker_process_name** changes process name ($0) of workers
   - **worker_heartbeat_interval**
   - **worker_heartbeat_timeout**
   - **worker_graceful_kill_interval**
