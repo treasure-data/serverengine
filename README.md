@@ -283,7 +283,7 @@ se.run
   - `initialize` is called in the parent process in contrast to the other methods
   - `before_run` is called before starting workers
   - `after_run` is called before shutting down
-  - `after_start` is called after starting the server process in the parent process
+  - `after_start` is called after starting the server process in the parent process (available only if `supervisor` parameter is true)
 - hook points (call `super` in these methods)
   - `reload_config`
   - `stop(stop_graceful)`
