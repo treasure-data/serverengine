@@ -1,4 +1,9 @@
 
+2013-06-04 version 1.5.1:
+
+* Changed #close callback to #after_start
+
+
 2013-06-01 version 1.5.0:
 
 * First release
