@@ -119,9 +119,9 @@ module ServerEngine
 
             s = create_server(create_logger)
 
-            STDIN.reopen("/dev/null")
-            STDOUT.reopen("/dev/null", "wb")
-            STDERR.reopen("/dev/null", "wb")
+            STDIN.reopen(File::NULL)
+            STDOUT.reopen(File::NULL, "wb")
+            STDERR.reopen(File::NULL, "wb")
 
             s.install_signal_handlers
 
