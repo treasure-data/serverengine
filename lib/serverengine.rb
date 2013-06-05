@@ -46,7 +46,7 @@ module ServerEngine
     require File.join(here, v)
   }
 
-  def self.create(server_module, worker_module, &config_load_proc)
-    Daemon.new(server_module, worker_module, &config_load_proc)
+  def self.create(server_module, worker_module, load_config_proc={}, &block)
+    Daemon.new(server_module, worker_module, load_config_proc={}, &block)
   end
 end
