@@ -62,13 +62,13 @@ module ServerEngine
 
     CONFIG_PARAMS = {
       heartbeat_interval: 1,
-      heartbeat_timeout: 60,
-      graceful_kill_interval: 2,
-      graceful_kill_interval_increment: 2,
-      graceful_kill_timeout: -1,
-      immediate_kill_interval: 2,
-      immediate_kill_interval_increment: 2,
-      immediate_kill_timeout: 60,
+      heartbeat_timeout: 180,
+      graceful_kill_interval: 15,
+      graceful_kill_interval_increment: 10,
+      graceful_kill_timeout: 600,
+      immediate_kill_interval: 10,
+      immediate_kill_interval_increment: 10,
+      immediate_kill_timeout: 600,
     }
 
     attr_reader :graceful_kill_signal, :immediate_kill_signal
@@ -303,7 +303,7 @@ module ServerEngine
         if !@immediate_kill_start_time
           # check escalation
           if heartbeat_delay >= @pm.heartbeat_timeout ||
-              (@graceful_kill_start_time && @pm.graceful_kill_timeout > 0 &&
+              (@graceful_kill_start_time && @pm.graceful_kill_timeout >= 0 &&
                @graceful_kill_start_time < now - @pm.graceful_kill_timeout)
             # escalate to immediate kill
             @kill_count = 0
@@ -322,7 +322,8 @@ module ServerEngine
         if @immediate_kill_start_time
           interval = @pm.immediate_kill_interval
           interval_incr = @pm.immediate_kill_interval_increment
-          if @immediate_kill_start_time <= now - @pm.immediate_kill_timeout
+          if @pm.immediate_kill_timeout >= 0 &&
+              @immediate_kill_start_time <= now - @pm.immediate_kill_timeout
             # escalate to SIGKILL
             signal = :KILL
           else

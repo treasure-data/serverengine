@@ -341,14 +341,14 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2)
 - Multiprocess server: available only when `worker_type` is "process"
   - **worker_process_name** changes process name ($0) of workers
-  - **worker_heartbeat_interval**
-  - **worker_heartbeat_timeout**
-  - **worker_graceful_kill_interval**
-  - **worker_graceful_kill_interval_increment**
-  - **worker_graceful_kill_timeout**
-  - **worker_immediate_kill_interval**
-  - **worker_immediate_kill_interval_increment**
-  - **worker_immediate_kill_timeout**
+  - **worker_heartbeat_interval** sets interval of heartbeats in seconds (default: 1.0)
+  - **worker_heartbeat_timeout** sets timeout of heartbeat in seconds (default: 180)
+  - **worker_graceful_kill_interval** sets the first interval of TERM signals in seconds (default: 15)
+  - **worker_graceful_kill_interval_increment** sets increment of TERM signal interval in seconds (default: 10)
+  - **worker_graceful_kill_timeout** sets promotion timeout from TERM to QUIT signal in seconds. -1 means no timeout (default: 600)
+  - **worker_immediate_kill_interval** sets the first interval of QUIT signals in seconds (default: 10)
+  - **worker_immediate_kill_interval_increment** sets increment of QUIT signal interval in seconds (default: 10)
+  - **worker_immediate_kill_timeout** sets promotion timeout from QUIT to KILL signal in seconds. -1 means no timeout (default: 600)
 - Logger
   - **log** sets path to log file. Set "-" for STDOUT (default: STDERR)
   - **log_level** log level: debug, info, warn, error or fatal. (default: debug)
