@@ -41,6 +41,7 @@ module ServerEngine
       end
 
       @daemon_process_name = @config[:daemon_process_name]
+      @daemonize_error_exit_code = @config[:daemonize_error_exit_code] || 1
 
       @pid_path = @config[:pid_path]
       @chuser = @config[:chuser]
@@ -63,7 +64,7 @@ module ServerEngine
         chgid = group.to_i
         if chgid.to_s != group
           chgid = `id -g #{Shellwords.escape group}`.to_i
-          exit! 1 unless $?.success?
+          exit! @daemonize_error_exit_code unless $?.success?
         end
         Process::GID.change_privilege(chgid)
       end
@@ -72,11 +73,11 @@ module ServerEngine
         chuid = user.to_i
         if chuid.to_s != user
           chuid = `id -u #{Shellwords.escape user}`.to_i
-          exit! 1 unless $?.success?
+          exit! @daemonize_error_exit_code unless $?.success?
         end
 
         user_groups = `id -G #{Shellwords.escape user}`.split.map(&:to_i)
-        exit! 1 unless $?.success?
+        exit! @daemonize_error_exit_code unless $?.success?
 
         Process.groups = Process.groups | user_groups
         Process::UID.change_privilege(chuid)
@@ -90,7 +91,7 @@ module ServerEngine
         exit main
       rescue
         ServerEngine.dump_uncaught_error($!)
-        exit 1  # TODO exit code
+        exit @daemonize_error_exit_code
       end
     end
 
@@ -133,7 +134,7 @@ module ServerEngine
 
           exit 0
         ensure
-          exit! 1  # TODO exit code
+          exit! @daemonize_error_exit_code
         end
       end
 
@@ -148,7 +149,7 @@ module ServerEngine
 
       data = rpipe.read
       if data != "\n"
-        return 1  # TODO exit code
+        return @daemonize_error_exit_code
       end
 
       return 0

@@ -326,6 +326,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **chuser** changes execution user (not dynamic reloadable)
   - **chgroup** changes execution group (not dynamic reloadable)
   - **chumask** changes umask (not dynamic reloadable)
+  - **daemonize_error_exit_code** exit code when daemonize, changing user or changing group fails (default: 1) (not dynamic reloadable)
 - Supervisor: available only when `supervisor` parameters is true
   - **server_process_name** changes process name ($0) of server process (not dynamic reloadable)
   - **restart_server_process** restarts server process when it receives USR1 or HUP signal. (default: false) (not dynamic reloadable)
