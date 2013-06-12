@@ -39,7 +39,7 @@ require 'serverengine'
 module MyWorker
   def run
     until @stop
-      puts "Awesome work!"
+      logger.info "Awesome work!"
       sleep 1
     end
   end
@@ -51,7 +51,8 @@ end
 
 se = ServerEngine.create(nil, MyWorker, {
   :daemonize => true,
-  :pid_path => 'myserver.pid'
+  :log => 'myserver.log',
+  :pid_path => 'myserver.pid',
 })
 se.run
 ```
@@ -66,6 +67,7 @@ Simply set **process** or **thread** to `worker_type` parameter and number of wo
 ```ruby
 se = ServerEngine.create(nil, MyWorker, {
   :daemonize => true,
+  :log => 'myserver.log',
   :pid_path => 'myserver.pid',
   :workers => 4,
   :worker_type => 'process',
@@ -107,6 +109,7 @@ end
 
 se = ServerEngine.create(MyServer, MyWorker, {
   :daemonize => true,
+  :log => 'myserver.log',
   :pid_path => 'myserver.pid',
   :workers => 4,
   :worker_type => 'process',
@@ -204,7 +207,7 @@ module MyWorker
 
   def run
     until @stop
-      puts @message
+      logger.info @message
       sleep @sleep
     end
   end
@@ -240,7 +243,7 @@ module MyWorker
 
   def run
     until @stop_flag.wait_for_set(1.0)  # or @stop_flag.set?
-      puts @message
+      logger.info @message
     end
   end
 
