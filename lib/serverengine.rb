@@ -47,6 +47,6 @@ module ServerEngine
   }
 
   def self.create(server_module, worker_module, load_config_proc={}, &block)
-    Daemon.new(server_module, worker_module, load_config_proc={}, &block)
+    Daemon.new(server_module, worker_module, load_config_proc, &block)
   end
 end
