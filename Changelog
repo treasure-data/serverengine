@@ -1,4 +1,11 @@
 
+2013-06-11 version 1.5.2:
+
+* Updated default parameters of ProcessManager to be more conservative
+* Daemon: added :daemonize_error_exit_code option
+* Fixed ServerEngine.create
+
+
 2013-06-04 version 1.5.1:
 
 * Changed #close callback to #after_start
