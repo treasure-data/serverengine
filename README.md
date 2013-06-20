@@ -358,7 +358,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **log_rotate_age** generations to keep rotated log files (default: 5) (not dynamic reloadable)
   - **log_rotate_size** sets the size to rotate log files (default: 1048576) (not dynamic reloadable)
   - **log_stdout** hooks STDOUT to log file (default: true) (not dynamic reloadable)
-  - **log_stdout** hooks STDERR to log file (default: true) (not dynamic reloadable)
+  - **log_stderr** hooks STDERR to log file (default: true) (not dynamic reloadable)
   - **logger_class** class of the logger instance (default: ServerEngine::DaemonLogger)
 
 ---
