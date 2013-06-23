@@ -111,10 +111,10 @@ module ServerEngine
         nil
       end
 
-      #def join
-      #  @pmon.join if @pmon
-      #  nil
-      #end
+      def join
+        @pmon.join if @pmon
+        nil
+      end
 
       def alive?
         return false unless @pmon

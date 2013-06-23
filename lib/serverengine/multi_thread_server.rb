@@ -48,9 +48,9 @@ module ServerEngine
         Thread.new { @worker.reload }
       end
 
-      #def join
-      #  @thread.join
-      #end
+      def join
+        @thread.join
+      end
 
       def alive?
         @thread.alive?

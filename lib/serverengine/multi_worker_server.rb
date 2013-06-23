@@ -68,6 +68,12 @@ module ServerEngine
       nil
     end
 
+    def join_workers
+      @monitors.each {|m|
+        m.join if m
+      }
+    end
+
     private
 
     def reload_config
