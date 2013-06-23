@@ -63,8 +63,7 @@ module ServerEngine
       if group
         chgid = group.to_i
         if chgid.to_s != group
-          chgid = `id -g #{Shellwords.escape group}`.to_i
-          exit! @daemonize_error_exit_code unless $?.success?
+          chgid = Process::GID.from_name(group)
         end
         Process::GID.change_privilege(chgid)
       end
@@ -72,14 +71,14 @@ module ServerEngine
       if user
         chuid = user.to_i
         if chuid.to_s != user
-          chuid = `id -u #{Shellwords.escape user}`.to_i
-          exit! @daemonize_error_exit_code unless $?.success?
+          chuid = Process::UID.from_name(user)
         end
 
         user_groups = `id -G #{Shellwords.escape user}`.split.map(&:to_i)
-        exit! @daemonize_error_exit_code unless $?.success?
+        if $?.success?
+          Process.groups = Process.groups | user_groups
+        end
 
-        Process.groups = Process.groups | user_groups
         Process::UID.change_privilege(chuid)
       end
 
@@ -115,7 +114,7 @@ module ServerEngine
             $0 = @daemon_process_name if @daemon_process_name
             wpipe.write "#{Process.pid}\n"
 
-            Daemon.change_privilege(@chumask, @chgroup)
+            Daemon.change_privilege(@chuser, @chgroup)
             File.umask(@chumask) if @chumask
 
             s = create_server(create_logger)
