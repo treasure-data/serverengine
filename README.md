@@ -365,7 +365,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
 
 ```
 Author:    Sadayuki Furuhashi
-Copyright: Copyright (c) 2012-2013 FURUHASHI Sadayuki
+Copyright: Copyright (c) 2012-2013 Sadayuki Furuhashi
 License:   Apache License, Version 2.0
 ```
 

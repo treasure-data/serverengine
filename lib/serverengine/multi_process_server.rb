@@ -1,7 +1,7 @@
 #
 # ServerEngine
 #
-# Copyright (C) 2012-2013 FURUHASHI Sadayuki
+# Copyright (C) 2012-2013 Sadayuki Furuhashi
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ module ServerEngine
       @pm = ProcessManager.new(
         auto_tick: false,
         graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
+        immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
         auto_heartbeat: true,
         on_heartbeat_error: Proc.new do
           @logger.fatal "parent process unexpectedly terminated"
