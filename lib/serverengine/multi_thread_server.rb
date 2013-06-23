@@ -23,6 +23,7 @@ module ServerEngine
     def start_worker(wid)
       w = create_worker(wid)
 
+      w.before_fork
       begin
         thread = Thread.new(&w.method(:main))
       ensure

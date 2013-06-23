@@ -268,7 +268,7 @@ se.run
 
 - interface
   - `initialize` is called in the parent process (or thread) in contrast to the other methods
-  - `before_fork` is called before fork for each worker process (available only if `worker_type` is "process")
+  - `before_fork` is called before fork for each worker process (available only if `worker_type` is "process" or "thread")
   - `run` is the required method
   - `stop` is called when TERM signal is received
   - `reload` is called when USR2 signal is received
