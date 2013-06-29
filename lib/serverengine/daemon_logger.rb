@@ -39,7 +39,7 @@ module ServerEngine
 
       super(@io, rotate_age, rotate_size)
 
-      self.level = config[:level] || 'debug'
+      self.level = config[:log_level] || 'debug'
     end
 
     attr_accessor :path
