@@ -1,4 +1,13 @@
 
+2013-06-30 version 1.5.3:
+
+* Daemon: uses Process::UID.from_name and Process::GID.from_name
+  instead of running id command
+* worker_type=thread calls before_fork
+* Added MultiWorkerServer#join_workers
+* DaemonLogger: fixed #initialize to use config[:log_level]
+
+
 2013-06-11 version 1.5.2:
 
 * Updated default parameters of ProcessManager to be more conservative
