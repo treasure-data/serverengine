@@ -24,7 +24,6 @@ module ServerEngine
       @handlers = {}
 
       @mutex = Mutex.new
-      @cond = ConditionVariable.new
       @queue = []
       @finished = false
 
@@ -61,7 +60,6 @@ module ServerEngine
       @mutex.synchronize do
         ## synchronized state 1
         @finished = true
-        @cond.broadcast
         ## synchronized state 2
       end
       self
@@ -78,7 +76,7 @@ module ServerEngine
         sig = @queue.shift
         unless sig
           ## synchronized state 4
-          @cond.wait(@mutex, 1)
+          sleep 1
           next
         end
 
@@ -104,39 +102,6 @@ module ServerEngine
 
     def enqueue(sig)
       @queue << sig
-
-      unless @mutex.try_lock
-        #
-        # here couldn't acquire @mutex.
-        #
-        #   A) a thread is in synchronized state 1 or 2.
-        #      In this case, here doesn't have to broadcast because the thread will/did broadcast.
-        #
-        #   B) `self` thread is in synchronized state 3
-        #      In this case, here doesn't have to broadcast because the `self` thread will
-        #      take a task from the queue soon.
-        #
-        #   C) `self` thread is in synchronized state 4
-        #      In this case, here needs to broadcast but doesn't broadcast. Thus it causes
-        #      blocking upto 1 second :(
-        #
-        #   D) `self` thread is in synchronized state 5
-        #      In this case, here doesn't have to broadcast because the `self` thread will
-        #      change to synchronized state 3 or 6 soon.
-        #
-        #   E) the main thread (the only thread which calls this method) is in synchronized
-        #      state 7. In this case, here doesn't have to broadcast.
-        #
-        return
-      end
-
-      ## synchronized state 7
-
-      begin
-        @cond.broadcast
-      ensure
-        @mutex.unlock
-      end
     end
 
   end
