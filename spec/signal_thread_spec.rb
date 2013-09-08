@@ -1,3 +1,4 @@
+require_relative 'spec_helper'
 
 describe ServerEngine::SignalThread do
   it 'start and stop' do

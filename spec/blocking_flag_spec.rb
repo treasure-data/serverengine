@@ -1,3 +1,4 @@
+require_relative 'spec_helper'
 
 describe ServerEngine::BlockingFlag do
   subject { BlockingFlag.new }
