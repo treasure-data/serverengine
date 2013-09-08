@@ -1,3 +1,4 @@
+require 'serverengine/daemon'
 
 describe ServerEngine::Daemon do
   include_context 'test server and worker'

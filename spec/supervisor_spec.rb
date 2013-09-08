@@ -1,3 +1,4 @@
+require_relative 'spec_helper'
 
 describe ServerEngine::Supervisor do
   include_context 'test server and worker'
