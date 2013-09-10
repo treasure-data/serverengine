@@ -14,6 +14,7 @@ describe ServerEngine::SignalThread do
     end
 
     Process.kill('CONT', Process.pid)
+    sleep 0.5
 
     t.stop.join
 
@@ -43,8 +44,7 @@ describe ServerEngine::SignalThread do
     end
 
     Process.kill('QUIT', Process.pid)
-
-    sleep 1
+    sleep 0.5
 
     n.should == 3
   end
@@ -57,6 +57,7 @@ describe ServerEngine::SignalThread do
     end
 
     Process.kill('QUIT', Process.pid)
+    sleep 0.5
 
     t.join
   end

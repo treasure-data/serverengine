@@ -44,6 +44,7 @@ describe ServerEngine::BlockingFlag do
     started = BlockingFlag.new
     t = Thread.new do
       started.set!
+      Thread.pass
       subject.wait_for_set(1)
       elapsed = Time.now - start
     end

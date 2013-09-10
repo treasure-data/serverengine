@@ -53,6 +53,7 @@ describe ServerEngine::Supervisor do
       wait_for_fork
 
       sv.restart(true)
+      wait_for_stop
 
     ensure
       sv.stop(true)
@@ -74,6 +75,7 @@ describe ServerEngine::Supervisor do
       wait_for_fork
 
       sv.restart(false)
+      wait_for_stop
 
     ensure
       sv.stop(true)
