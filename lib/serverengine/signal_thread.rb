@@ -42,7 +42,11 @@ module ServerEngine
 
       old = @handlers[sig]
       if block
-        Kernel.trap(sig) { enqueue(sig) }
+        Kernel.trap(sig) do
+          Thread.new {
+            enqueue(sig)
+          }.run
+        end
         @handlers[sig] = block
       else
         Kernel.trap(sig, command)
