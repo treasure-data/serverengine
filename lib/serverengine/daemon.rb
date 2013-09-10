@@ -88,8 +88,8 @@ module ServerEngine
     def run
       begin
         exit main
-      rescue
-        ServerEngine.dump_uncaught_error($!)
+      rescue => e
+        ServerEngine.dump_uncaught_error(e)
         exit @daemonize_error_exit_code
       end
     end

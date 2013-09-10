@@ -24,6 +24,7 @@ module ServerEngine
       @handlers = {}
 
       @mutex = Mutex.new
+      @cond = ConditionVariable.new
       @queue = []
       @finished = false
 
@@ -42,7 +43,7 @@ module ServerEngine
 
       old = @handlers[sig]
       if block
-        Kernel.trap(sig) { enqueue(sig) }
+        Kernel.trap(sig) { signal_handler_main(sig) }
         @handlers[sig] = block
       else
         Kernel.trap(sig, command)
@@ -58,50 +59,59 @@ module ServerEngine
 
     def stop
       @mutex.synchronize do
-        ## synchronized state 1
         @finished = true
-        ## synchronized state 2
+        @cond.broadcast
       end
       self
     end
 
     private
 
+    def signal_handler_main(sig)
+      # here always creates new thread to avoid
+      # complicated race conditin in signal handlers
+      Thread.new do
+        begin
+          enqueue(sig)
+        rescue => e
+          ServerEngine.dump_uncaught_error($!)
+        end
+      end
+    end
+
     def main
-      @mutex.lock
-
       until @finished
-        ## synchronized state 3
+        sig = nil
 
-        sig = @queue.shift
-        unless sig
-          ## synchronized state 4
-          sleep 1
-          next
+        @mutex.synchronize do
+          while true
+            return if @finished
+
+            sig = @queue.shift
+            break if sig
+
+            @cond.wait(@mutex, 1)
+          end
         end
 
-        ## synchronized state 5
-
-        @mutex.unlock
         begin
           @handlers[sig].call(sig)
-        rescue
-          ServerEngine.dump_uncaught_error($!)
-        ensure
-          @mutex.lock
+        rescue => e
+          ServerEngine.dump_uncaught_error(e)
         end
       end
 
-      ## synchronized state 6
       nil
 
     ensure
-      @mutex.unlock
       @finished = false
     end
 
     def enqueue(sig)
-      @queue << sig
+      @mutex.synchronize do
+        @queue << sig
+        @cond.broadcast
+      end
     end
 
   end
