@@ -1,25 +1,32 @@
 
-require 'pstore'
+require 'thread'
+require 'yaml'
 
 def reset_test_state
   FileUtils.mkdir_p 'tmp'
-  FileUtils.rm_f 'tmp/state.pstore'
-  FileUtils.touch 'tmp/state.pstore'
+  FileUtils.rm_f 'tmp/state.yml'
+  FileUtils.touch 'tmp/state.yml'
+  $state_file_mutex = Mutex.new
 end
 
 def incr_test_state(key)
-  ps = PStore.new('tmp/state.pstore')
-  ps.transaction do
-    ps[key] ||= 0
-    ps[key] += 1
+  File.open('tmp/state.yml', 'r+') do |f|
+    f.flock(File::LOCK_EX)
+
+    $state_file_mutex.synchronize do
+      data = YAML.load(f.read) || {} rescue {}
+      data[key] ||= 0
+      data[key] += 1
+
+      f.pos = 0
+      f.write YAML.dump(data)
+    end
   end
 end
 
 def test_state(key)
-  ps = PStore.new('tmp/state.pstore')
-  ps.transaction do
-    return ps[key] || 0
-  end
+  data = YAML.load_file('tmp/state.yml') || {} rescue {}
+  return data[key] || 0
 end
 
 shared_context 'test server and worker' do
