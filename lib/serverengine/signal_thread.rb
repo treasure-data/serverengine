@@ -74,7 +74,7 @@ module ServerEngine
         begin
           enqueue(sig)
         rescue => e
-          ServerEngine.dump_uncaught_error($!)
+          ServerEngine.dump_uncaught_error(e)
         end
       end
     end

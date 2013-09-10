@@ -33,7 +33,7 @@ shared_context 'test server and worker' do
   before { reset_test_state }
 
   def wait_for_fork
-    sleep 0.2
+    sleep 0.8
   end
 
   def wait_for_stop
@@ -104,7 +104,11 @@ shared_context 'test server and worker' do
 
     def run
       incr_test_state :worker_run
-      @stop_flag.wait(5.0)
+      5.times do
+        # repeats 5 times because signal handlers
+        # interrupts wait
+        @stop_flag.wait(5.0)
+      end
       @stop_flag.reset!
     end
 
