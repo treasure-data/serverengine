@@ -1,4 +1,10 @@
 
+2013-09-10 version 1.5.4:
+
+* SignalThread: fixed "Unexpected error can't be called from trap context"
+  error in Ruby 2.0 (Thanks to @jondot and @sonots)
+
+
 2013-06-30 version 1.5.3:
 
 * Daemon: uses Process::UID.from_name and Process::GID.from_name
