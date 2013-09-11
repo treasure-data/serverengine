@@ -40,12 +40,24 @@ module ServerEngine
       end
 
       def send_stop(stop_graceful)
-        Thread.new { @worker.stop }
+        Thread.new do
+          begin
+            @worker.stop
+          rescue => e
+            ServerEngine.dump_uncaught_error(e)
+          end
+        end
         nil
       end
 
       def send_reload
-        Thread.new { @worker.reload }
+        Thread.new do
+          begin
+            @worker.reload
+          rescue => e
+            ServerEngine.dump_uncaught_error(e)
+          end
+        end
       end
 
       def join
