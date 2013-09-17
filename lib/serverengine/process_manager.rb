@@ -31,7 +31,7 @@ module ServerEngine
       @immediate_kill_signal = config[:immediate_kill_signal] || :QUIT
 
       @auto_tick = config.fetch(:auto_tick, true)
-      @tick_interval = config[:tick_interval] || 1
+      @auto_tick_interval = config[:auto_tick_interval] || 1
 
       @enable_heartbeat = !!config[:enable_heartbeat]
       @auto_heartbeat = !!config.fetch(:auto_heartbeat, true)
@@ -62,7 +62,7 @@ module ServerEngine
     attr_accessor :cloexec_mode
 
     attr_reader :graceful_kill_signal, :immediate_kill_signal
-    attr_reader :auto_tick, :tick_interval
+    attr_reader :auto_tick, :auto_tick_interval
     attr_reader :enable_heartbeat, :auto_heartbeat
 
     CONFIG_PARAMS = {
@@ -118,11 +118,13 @@ module ServerEngine
 
         @monitors << m
         @rpipes[rpipe] = m
+        rpipe = nil
 
         return m
 
       ensure
         wpipe.close
+        rpipe.close if rpipe
       end
     end
 
@@ -164,26 +166,25 @@ module ServerEngine
       end
 
       ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
-      unless ready_pipes
-        return nil
-      end
 
       time ||= Time.now
 
-      ready_pipes.each do |r|
-        begin
-          r.read_nonblock(1024, @read_buffer)
-        rescue Errno::EAGAIN, Errno::EINTR
-          next
-        rescue #EOFError
-          m = @rpipes.delete(r)
-          m.start_immediate_stop!
-          r.close rescue nil
-          next
-        end
+      if ready_pipes
+        ready_pipes.each do |r|
+          begin
+            r.read_nonblock(1024, @read_buffer)
+          rescue Errno::EAGAIN, Errno::EINTR
+            next
+          rescue #EOFError
+            m = @rpipes.delete(r)
+            m.start_immediate_stop!
+            r.close rescue nil
+            next
+          end
 
-        if m = @rpipes[r]
-          m.last_heartbeat_time = time
+          if m = @rpipes[r]
+            m.last_heartbeat_time = time
+          end
         end
       end
 
@@ -374,7 +375,7 @@ module ServerEngine
 
       def main
         while true
-          @pm.tick(@pm.tick_interval)
+          @pm.tick(@pm.auto_tick_interval)
         end
         nil
       rescue AlreadyClosedError
