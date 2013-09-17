@@ -1,4 +1,15 @@
 
+2013-09-17 version 1.5.5:
+
+* worker_type=thread and embedded show uncaught errors caused in Worker#stop
+  and Worker#reload interface
+* ProcessManager: enables child process heartbeat only if enable_heartbeat
+  option is true
+* ProcessManager: doesn't call fcntl on pipe pairs if F_SETFD or FD_CLOEXEC
+  is not defined
+* ProcessManager: added #spawn(*args) method
+
+
 2013-09-10 version 1.5.4:
 
 * SignalThread: fixed "Unexpected error can't be called from trap context"
