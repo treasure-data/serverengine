@@ -93,7 +93,7 @@ module ServerEngine
     end
 
     def fork(&block)
-      rpipe, wpipe = new_pair
+      rpipe, wpipe = new_pipe_pair
 
       begin
         pid = Process.fork do
@@ -126,17 +126,19 @@ module ServerEngine
       end
     end
 
-    def new_pair
+    def new_pipe_pair
       rpipe, wpipe = IO.pipe
 
-      case @cloexec_mode
-      when :target_only
-        wpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
-      when :monitor_only
-        rpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
-      else
-        rpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
-        wpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+      if Fcntl.const_defined?(:F_SETFD) && Fcntl.const_defined?(:FD_CLOEXEC)
+        case @cloexec_mode
+        when :target_only
+          wpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+        when :monitor_only
+          rpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+        else
+          rpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+          wpipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+        end
       end
 
       rpipe.sync = true
@@ -192,7 +194,7 @@ module ServerEngine
       nil
     end
 
-    def self.signal_name(n)
+    def self.format_signal_name(n)
       Signal.list.each_pair {|k,v|
         return "SIG#{k}" if n == v
       }
@@ -203,7 +205,7 @@ module ServerEngine
       case code
       when Process::Status
         if code.signaled?
-          "signal #{signal_name(code.termsig)}"
+          "signal #{format_signal_name(code.termsig)}"
         else
           "status #{code.exitstatus}"
         end
