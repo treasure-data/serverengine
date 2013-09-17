@@ -128,6 +128,45 @@ module ServerEngine
       end
     end
 
+    def spawn(*args)
+      if args.first.is_a?(Hash)
+        env = args.shift.dup
+      else
+        env = {}
+      end
+
+      if args.last.is_a?(Hash)
+        options = args.pop.dup
+      else
+        options = {}
+      end
+
+      # pipe is necessary even if @enable_heartbeat == false because
+      # parent process detects shutdown of a child process using it
+      rpipe, wpipe = new_pipe_pair
+
+      begin
+        options[wpipe.fileno] = wpipe
+        if @enable_heartbeat
+          env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+        end
+
+        pid = Process.spawn(env, *args, options)
+
+        m = Monitor.new(self, pid)
+
+        @monitors << m
+        @rpipes[rpipe] = m
+        rpipe = nil
+
+        return m
+
+      ensure
+        wpipe.close
+        rpipe.close if rpipe
+      end
+    end
+
     def new_pipe_pair
       rpipe, wpipe = IO.pipe
 
