@@ -31,6 +31,7 @@ module ServerEngine
         auto_tick: false,
         graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
         immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+        enable_heartbeat: true,
         auto_heartbeat: true,
       )
 

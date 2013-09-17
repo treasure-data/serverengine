@@ -33,7 +33,8 @@ module ServerEngine
       @auto_tick = config.fetch(:auto_tick, true)
       @tick_interval = config[:tick_interval] || 1
 
-      @auto_heartbeat = config.fetch(:auto_heartbeat, true)
+      @enable_heartbeat = !!config[:enable_heartbeat]
+      @auto_heartbeat = !!config.fetch(:auto_heartbeat, true)
 
       case op = config[:on_heartbeat_error]
       when nil
@@ -60,6 +61,10 @@ module ServerEngine
 
     attr_accessor :cloexec_mode
 
+    attr_reader :graceful_kill_signal, :immediate_kill_signal
+    attr_reader :auto_tick, :tick_interval
+    attr_reader :enable_heartbeat, :auto_heartbeat
+
     CONFIG_PARAMS = {
       heartbeat_interval: 1,
       heartbeat_timeout: 180,
@@ -70,8 +75,6 @@ module ServerEngine
       immediate_kill_interval_increment: 10,
       immediate_kill_timeout: 600,
     }
-
-    attr_reader :graceful_kill_signal, :immediate_kill_signal
 
     CONFIG_PARAMS.each_pair do |key,default_value|
       attr_reader key
@@ -97,7 +100,7 @@ module ServerEngine
           self.close
           begin
             t = Target.new(wpipe)
-            if @auto_heartbeat
+            if @enable_heartbeat && @auto_heartbeat
               HeartbeatThread.new(self, t, @heartbeat_error_proc)
             end
 
@@ -301,10 +304,17 @@ module ServerEngine
         return false unless pid
 
         if !@immediate_kill_start_time
-          # check escalation
-          if heartbeat_delay >= @pm.heartbeat_timeout ||
-              (@graceful_kill_start_time && @pm.graceful_kill_timeout >= 0 &&
-               @graceful_kill_start_time < now - @pm.graceful_kill_timeout)
+          # check heartbeat timeout or escalation
+          if (
+              # heartbeat timeout
+              @pm.enable_heartbeat &&
+              heartbeat_delay >= @pm.heartbeat_timeout
+             ) || (
+               # escalation
+               @graceful_kill_start_time &&
+               @pm.graceful_kill_timeout >= 0 &&
+               @graceful_kill_start_time < now - @pm.graceful_kill_timeout
+             )
             # escalate to immediate kill
             @kill_count = 0
             @immediate_kill_start_time = now
