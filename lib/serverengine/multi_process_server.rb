@@ -70,7 +70,7 @@ module ServerEngine
           $0 = @worker_process_name % [wid] if @worker_process_name
           w.install_signal_handlers
 
-          Daemon.change_privilege(@chumask, @chgroup)
+          Daemon.change_privilege(@chuser, @chgroup)
           File.umask(@chumask) if @chumask
 
           ## recreate the logger created at Server#main
