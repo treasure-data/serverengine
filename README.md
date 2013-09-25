@@ -57,33 +57,35 @@ se = ServerEngine.create(nil, MyWorker, {
 se.run
 ```
 
-Send `TERM` signal to kill the daemon. See also **Signals** section bellow.
+Send `TERM` signal to kill the daemon. See also **Signals** section bellow for details.
 
 
 ### Multiprocess server
 
-Simply set **process** or **thread** to `worker_type` parameter and number of workers to `workers` parameter.
+Simply set **worker_type=process** or **worker_type=thread** parameter, and set number of workers to `workers` parameter.
 
 ```ruby
 se = ServerEngine.create(nil, MyWorker, {
   :daemonize => true,
   :log => 'myserver.log',
   :pid_path => 'myserver.pid',
-  :workers => 4,
   :worker_type => 'process',
+  :workers => 4,
 })
 se.run
 ```
 
 See also **Worker types** section bellow.
 
-#### Multiprocess TCP server
 
-One of typical implementation styles of TCP servers is that a parent process listens socket and child processes accept connections from clients.
+### Multiprocess TCP server
 
-You can optionally implement a server module to control the parent process.
+One of the typical implementation styles of TCP servers is that a parent process listens socket and child processes accept connections from clients.
+
+ServerEngine allows you to optionally implement a server module to control the parent process:
 
 ```ruby
+# Server module controls the parent process
 module MyServer
   def before_run
     @sock = TCPServer.new(config[:bind], config[:port])
@@ -92,6 +94,7 @@ module MyServer
   attr_reader :sock
 end
 
+# Worker module controls child processes
 module MyWorker
   def run
     until @stop
@@ -111,8 +114,8 @@ se = ServerEngine.create(MyServer, MyWorker, {
   :daemonize => true,
   :log => 'myserver.log',
   :pid_path => 'myserver.pid',
-  :workers => 4,
   :worker_type => 'process',
+  :workers => 4,
   :bind => '0.0.0.0',
   :port => 9071,
 })
@@ -141,7 +144,7 @@ See also **Configuration** section bellow.
 
 Server programs running 24x7 hours need to survive even if a process stalled because of unexpected memory swapping or network errors.
 
-Supervisor automatically reboots the server process if heartbeat breaks out.
+Supervisor process runs as the parent process of the server process and monitor it to restart automatically.
 
 ```ruby
 se = ServerEngine.create(nil, MyWorker, {
@@ -152,10 +155,11 @@ se = ServerEngine.create(nil, MyWorker, {
 se.run
 ```
 
+
 ### Live restart
 
-You can restart a server process without waiting for completion of shutdown process (if `supervisor` and `enable_detach` parameters are enabled).
-This feature is useful to minimize downtime where workers take long time to complete tasks.
+You can restart a server process without waiting for completion of all workers using `INT` signal (`supervisor=true` and `enable_detach=true` parameters must be enabled).
+This feature allows you to minimize downtime where workers take long time to complete a task.
 
 ```
 # 1. starts server
@@ -187,7 +191,7 @@ This feature is useful to minimize downtime where workers take long time to comp
                   +----------+    +-----------+
 ```
 
-Note that network servers (which listen sockets) shouldn't use live restart because it causes "Address already in use" error. Instead, simply use `worker_type=process` configuration and send `USR1` to restart only workers. USR1 signal doesn't restart server (by default. See also `restart_server_process` parameter). Restarting workers don't wait for completion of all running workers.
+Note that network servers (which listen sockets) shouldn't use live restart because it causes "Address already in use" error at the server process. Instead, simply use `worker_type=process` configuration and send `USR1` to restart workers instead of the server. It restarts a worker without waiting for shutdown of the other workers. This way doesn't cause downtime because server process doesn't close listening sockets and keeps accepting new clients (See also `restart_server_process` parameter if necessary).
 
 
 ### Dynamic configuration reloading
@@ -322,43 +326,43 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
 ## Configuration
 
 - Daemon
-  - **daemonize** enables daemonize (default: false) (not dynamic reloadable)
-  - **pid_path** sets the path to pid file (default: don't create pid file) (not dynamic reloadable)
-  - **supervisor** enables supervisor if it's true (default: false) (not dynamic reloadable)
-  - **daemon_process_name** changes process name ($0) of server or supervisor process (not dynamic reloadable)
-  - **chuser** changes execution user (not dynamic reloadable)
-  - **chgroup** changes execution group (not dynamic reloadable)
-  - **chumask** changes umask (not dynamic reloadable)
-  - **daemonize_error_exit_code** exit code when daemonize, changing user or changing group fails (default: 1) (not dynamic reloadable)
+  - **daemonize** enables daemonize (default: false)
+  - **pid_path** sets the path to pid file (default: don't create pid file)
+  - **supervisor** enables supervisor if it's true (default: false)
+  - **daemon_process_name** changes process name ($0) of server or supervisor process
+  - **chuser** changes execution user
+  - **chgroup** changes execution group
+  - **chumask** changes umask
+  - **daemonize_error_exit_code** exit code when daemonize, changing user or changing group fails (default: 1)
 - Supervisor: available only when `supervisor` parameters is true
-  - **server_process_name** changes process name ($0) of server process (not dynamic reloadable)
-  - **restart_server_process** restarts server process when it receives USR1 or HUP signal. (default: false) (not dynamic reloadable)
-  - **enable_detach** enables INT signal (default: true) (not dynamic reloadable)
-  - **exit_on_detach** exits supervisor after detaching server process instead of restarting it (default: false) (not dynamic reloadable)
-  - **disable_reload** disables USR2 signal (default: false) (not dynamic reloadable)
-  - **server_restart_wait** sets wait time before restarting server after last restarting (default: 1.0)
-  - **server_detach_wait** sets wait time before starting live restart (default: 10.0)
+  - **server_process_name** changes process name ($0) of server process
+  - **restart_server_process** restarts server process when it receives USR1 or HUP signal. (default: false)
+  - **enable_detach** enables INT signal (default: true)
+  - **exit_on_detach** exits supervisor after detaching server process instead of restarting it (default: false)
+  - **disable_reload** disables USR2 signal (default: false)
+  - **server_restart_wait** sets wait time before restarting server after last restarting (default: 1.0) [dynamic reloadable]
+  - **server_detach_wait** sets wait time before starting live restart (default: 10.0) [dynamic reloadable]
 - Multithread server and multiprocess server: available only when `worker_type` is thread or process
-  - **workers** sets number of workers (default: 1)
-  - **start_worker_delay** sets wait time before starting a new worker (default: 0)
-  - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2)
-- Multiprocess server: available only when `worker_type` is "process"
-  - **worker_process_name** changes process name ($0) of workers
-  - **worker_heartbeat_interval** sets interval of heartbeats in seconds (default: 1.0)
-  - **worker_heartbeat_timeout** sets timeout of heartbeat in seconds (default: 180)
-  - **worker_graceful_kill_interval** sets the first interval of TERM signals in seconds (default: 15)
-  - **worker_graceful_kill_interval_increment** sets increment of TERM signal interval in seconds (default: 10)
-  - **worker_graceful_kill_timeout** sets promotion timeout from TERM to QUIT signal in seconds. -1 means no timeout (default: 600)
-  - **worker_immediate_kill_interval** sets the first interval of QUIT signals in seconds (default: 10)
-  - **worker_immediate_kill_interval_increment** sets increment of QUIT signal interval in seconds (default: 10)
-  - **worker_immediate_kill_timeout** sets promotion timeout from QUIT to KILL signal in seconds. -1 means no timeout (default: 600)
+  - **workers** sets number of workers (default: 1) [dynamic reloadable]
+  - **start_worker_delay** sets wait time before starting a new worker (default: 0) [dynamic reloadable]
+  - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2) [dynamic reloadable]
+- Multiprocess server: available only when `worker_type` is "process" [dynamic reloadable]
+  - **worker_process_name** changes process name ($0) of workers [dynamic reloadable]
+  - **worker_heartbeat_interval** sets interval of heartbeats in seconds (default: 1.0) [dynamic reloadable]
+  - **worker_heartbeat_timeout** sets timeout of heartbeat in seconds (default: 180) [dynamic reloadable]
+  - **worker_graceful_kill_interval** sets the first interval of TERM signals in seconds (default: 15) [dynamic reloadable]
+  - **worker_graceful_kill_interval_increment** sets increment of TERM signal interval in seconds (default: 10) [dynamic reloadable]
+  - **worker_graceful_kill_timeout** sets promotion timeout from TERM to QUIT signal in seconds. -1 means no timeout (default: 600) [dynamic reloadable]
+  - **worker_immediate_kill_interval** sets the first interval of QUIT signals in seconds (default: 10) [dynamic reloadable]
+  - **worker_immediate_kill_interval_increment** sets increment of QUIT signal interval in seconds (default: 10) [dynamic reloadable]
+  - **worker_immediate_kill_timeout** sets promotion timeout from QUIT to KILL signal in seconds. -1 means no timeout (default: 600) [dynamic reloadable]
 - Logger
-  - **log** sets path to log file. Set "-" for STDOUT (default: STDERR)
-  - **log_level** log level: debug, info, warn, error or fatal. (default: debug)
-  - **log_rotate_age** generations to keep rotated log files (default: 5) (not dynamic reloadable)
-  - **log_rotate_size** sets the size to rotate log files (default: 1048576) (not dynamic reloadable)
-  - **log_stdout** hooks STDOUT to log file (default: true) (not dynamic reloadable)
-  - **log_stderr** hooks STDERR to log file (default: true) (not dynamic reloadable)
+  - **log** sets path to log file. Set "-" for STDOUT (default: STDERR) [dynamic reloadable]
+  - **log_level** log level: debug, info, warn, error or fatal. (default: debug) [dynamic reloadable]
+  - **log_rotate_age** generations to keep rotated log files (default: 5)
+  - **log_rotate_size** sets the size to rotate log files (default: 1048576)
+  - **log_stdout** hooks STDOUT to log file (default: true)
+  - **log_stderr** hooks STDERR to log file (default: true)
   - **logger_class** class of the logger instance (default: ServerEngine::DaemonLogger)
 
 ---
