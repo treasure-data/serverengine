@@ -26,11 +26,18 @@ module ServerEngine
       rotate_age = config[:log_rotate_age] || 5
       rotate_size = config[:log_rotate_size] || 1048576
 
-      super(dev, rotate_age, rotate_size)
-      @io = @logdev.dev
+      if dev.is_a?(String)
+        @path = dev
+        @io = File.open(@path, "a")
+        @io.sync = true
+      else
+        @io = dev
+      end
 
       hook_stdout! if @hook_stdout
       hook_stderr! if @hook_stderr
+
+      super(@io, rotate_age, rotate_size)
 
       self.level = config[:log_level] || 'debug'
     end
