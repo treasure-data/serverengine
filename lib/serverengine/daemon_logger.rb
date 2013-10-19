@@ -131,22 +131,26 @@ module ServerEngine
       def initialize(path, opts={})
         @shift_age = opts[:shift_age] || 7
         @shift_size = opts[:shift_size] || 1024*1024
-        @rotate_mutex = Mutex.new
+        @mutex = Mutex.new
         self.path = path
       end
 
-      def write(message)
-        return nil unless @file
-        if @file.size > @shift_size
+      def write(data)
+        # it's hard to remove this synchronize because IO#write raises
+        # Errno::ENOENT if IO#reopen is running concurrently.
+        @mutex.synchronize do
+          unless @file
+            return nil
+          end
           log_rotate_or_reopen
+          @file.write(data)
         end
-        @file.write message
       rescue Exception => e
         warn("log writing failed. #{e}")
       end
 
       def path=(path)
-        @rotate_mutex.synchronize do
+        @mutex.synchronize do
           old_file = @file
           file = open_logfile(path)
           begin
@@ -157,11 +161,11 @@ module ServerEngine
             file.close if file
           end
         end
-        path
+        return path
       end
 
       def close
-        @rotate_mutex.synchronize do
+        @mutex.synchronize do
           @file.close
           @file = nil
         end
@@ -190,34 +194,47 @@ module ServerEngine
 
       def open_logfile(path)
         return nil unless path
+
         file = File.open(path, 'a')
         file.sync = true
         # Logger::LogDevice writes header to the file if file is empty.
+
         return file
       end
 
       def log_rotate_or_reopen
-        @rotate_mutex.synchronize do
-          return unless @file
+        stat = @file.stat
+        if stat.size <= @shift_size
+          return
+        end
 
-          # double-checked locking
-          return if @file.size <= @shift_size
-
-          # inter-process locking
-          @file.flock(File::LOCK_EX)
+        # inter-process locking
+        retry_limit = 10
+        begin
+          # 1) other process is log-rotating now
+          # 2) other process log rotated
+          # 3) no active processes
+          lock = File.open(@path, File::WRONLY | File::APPEND)
           begin
-            ino = @file.stat.ino
-            if File.stat(@path).ino == ino
-              # lock succeeded
+            lock.flock(File::LOCK_EX)
+            ino = lock.stat.ino
+            if ino == File.stat(@path).ino
+              # 3)
               log_rotate
             else
-              # other process locked
               reopen!
             end
-          ensure
-            @file.flock(File::LOCK_UN)
+          rescue
+            lock.close
           end
+        rescue Errno::ENOENT => e
+          raise e if retry_limit <= 0
+          retry_limit -= 1
+          sleep 0.2
+          retry
         end
+      rescue => e
+        warn("log rotation lock failed. #{e}")
       end
 
       def log_rotate
@@ -226,8 +243,12 @@ module ServerEngine
             File.rename("#{@path}.#{i}", "#{@path}.#{i+1}")
           end
         end
-        File.rename("#{@path}", "#{@path}.0")
+        #if FileTest.exist?("#{@path}")
+          File.rename("#{@path}", "#{@path}.0")
+        #end
         reopen!
+      rescue => e
+        warn("log rotation failed. #{e} #{e.backtrace[0,3]}")
       end
     end
   end
