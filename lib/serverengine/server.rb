@@ -70,6 +70,10 @@ module ServerEngine
     def main
       create_logger unless @logger
 
+      # start threads to transfer logs from STDOUT/ERR to the logger
+      start_io_logging_thread(STDOUT) if @log_stdout
+      start_io_logging_thread(STDERR) if @log_stderr
+
       before_run
 
       begin
@@ -92,6 +96,26 @@ module ServerEngine
       w.extend(@worker_module)
       w.instance_eval { initialize }
       w
+    end
+
+    def start_io_logging_thread(io)
+      if @logger.same_io?(io)
+        return
+      end
+
+      r, w = IO.pipe
+      io.reopen(w)
+      w.close
+
+      Thread.new do
+        begin
+          while line = r.gets
+            @logger << line
+          end
+        rescue => e
+          ServerEngine.dump_uncaught_error(e)
+        end
+      end
     end
   end
 

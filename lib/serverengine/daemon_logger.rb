@@ -20,7 +20,7 @@ module ServerEngine
   require 'logger'
 
   class DaemonLogger < Logger
-    def initialize(path_or_io, config={})
+    def initialize(path, config={})
       rotate_age = config[:log_rotate_age] || 5
       rotate_size = config[:log_rotate_size] || 1048576
 
@@ -30,22 +30,24 @@ module ServerEngine
       super(nil)
 
       self.level = config[:log_level] || 'debug'
+      self.path = path
+    end
 
-      # overwrite @logdev
-      if path_or_io.respond_to?(:write) and path_or_io.respond_to?(:close)
-        # IO
-        @logdev = path_or_io
-        @logdev.sync = true if @logdev.respond_to?(:sync=)
-      else
-        # path
-        @file_dev.path = path_or_io
-        @logdev = @file_dev
-      end
+    def same_io?(io)
+      @logdev == io || @file_dev.dev == io
     end
 
     def path=(path)
-      @file_dev.path = path
-      @logdev = @file_dev
+      # overwrite @logdev
+      if path.respond_to?(:write) and path.respond_to?(:close)
+        # IO
+        @logdev = path
+        @logdev.sync = true if @logdev.respond_to?(:sync=)
+      else
+        # path
+        @file_dev.path = path
+        @logdev = @file_dev
+      end
       path
     end
 
@@ -172,6 +174,16 @@ module ServerEngine
         @file.reopen(@path, 'a')
         @file.sync = true
         true
+      end
+
+      # for compatibility with Logger::LogDevice
+      def dev
+        @file
+      end
+
+      # for compatibility with Logger::LogDevice
+      def filename
+        @path
       end
 
       private

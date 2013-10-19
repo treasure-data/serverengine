@@ -40,20 +40,11 @@ module ServerEngine
 
       @logger_class = @config[:logger_class] || DaemonLogger
 
-      case c = @config[:log]
-      when nil  # default
-        @log_dev = STDERR
-      when "-"
-        @log_dev = STDOUT
-      else
-        @log_dev = c
-      end
-
       if @logger
-        if @log_dev.is_a?(String)
-          @logger.path = @log_dev
+        path = log_path_from_config(@config)
+        unless path.is_a?(IO)
+          @logger.path = io
         end
-
         @logger.level = @config[:log_level] || 'debug'
       end
 
@@ -68,7 +59,18 @@ module ServerEngine
         return
       end
 
-      @logger = @logger_class.new(@log_dev, @config)
+      @logger = @logger_class.new(log_path_from_config(@config), @config)
+    end
+
+    def log_path_from_config(config)
+      case c = @config[:log]
+      when nil  # default
+        return STDERR
+      when "-"
+        return STDOUT
+      else
+        return c
+      end
     end
   end
 
