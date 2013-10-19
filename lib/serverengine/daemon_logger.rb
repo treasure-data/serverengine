@@ -146,7 +146,7 @@ module ServerEngine
           @file.write(data)
         end
       rescue Exception => e
-        warn("log writing failed. #{e}")
+        warn "log writing failed: #{e}"
       end
 
       def path=(path)
@@ -194,11 +194,8 @@ module ServerEngine
 
       def open_logfile(path)
         return nil unless path
-
         file = File.open(path, 'a')
         file.sync = true
-        # Logger::LogDevice writes header to the file if file is empty.
-
         return file
       end
 
@@ -233,8 +230,9 @@ module ServerEngine
           sleep 0.2
           retry
         end
+
       rescue => e
-        warn("log rotation lock failed. #{e}")
+        warn "log rotation inter-process lock failed: #{e}"
       end
 
       def log_rotate
@@ -248,7 +246,7 @@ module ServerEngine
         #end
         reopen!
       rescue => e
-        warn("log rotation failed. #{e} #{e.backtrace[0,3]}")
+        warn "log rotation failed: #{e}"
       end
     end
   end
