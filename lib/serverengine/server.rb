@@ -29,8 +29,8 @@ module ServerEngine
 
       @log_stdout = !!@config.fetch(:log_stdout, true)
       @log_stderr = !!@config.fetch(:log_stderr, true)
-      @log_stdout = false if @config[:log] == '-'
-      @log_stderr = false if @config[:log] == nil
+      @log_stdout = false if log_path_from_config(@config) == STDOUT
+      @log_stderr = false if log_path_from_config(@config) == STDERR
     end
 
     def before_run
