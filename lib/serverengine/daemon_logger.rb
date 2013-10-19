@@ -51,6 +51,32 @@ module ServerEngine
 
     attr_reader :path
 
+    # override add method
+    def add(severity, message = nil, progname = nil, &block)
+      if severity < @level
+        return true
+      end
+      if message.nil?
+        if block_given?
+          message = yield
+        else
+          message = progname
+          progname = nil
+        end
+      end
+      progname ||= @progname
+      self << format_message(SEVERITY_FORMATS_[severity+1], Time.now, progname, message)
+      true
+    end
+
+    module Severity
+      include Logger::Severity
+      TRACE = -1
+    end
+    include Severity
+
+    SEVERITY_FORMATS_ = %w(TRACE DEBUG INFO WARN ERROR FATAL ANY)
+
     def level=(expr)
       case expr.to_s
       when 'fatal', FATAL.to_s
@@ -63,12 +89,16 @@ module ServerEngine
         e = INFO
       when 'debug', DEBUG.to_s
         e = DEBUG
+      when 'trace', TRACE.to_s
+        e = TRACE
       else
         raise ArgumentError, "invalid log level: #{expr}"
       end
 
       super(e)
     end
+
+    def trace?; @level <= TRACE; end
 
     def reopen!
       if @path

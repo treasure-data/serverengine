@@ -6,7 +6,7 @@ describe ServerEngine::DaemonLogger do
   before { FileUtils.rm_f Dir["tmp/se1.log.**"] }
   before { FileUtils.rm_f("tmp/se2.log") }
 
-  subject { DaemonLogger.new("tmp/se1.log", level: 'info') }
+  subject { DaemonLogger.new("tmp/se1.log", level: 'trace') }
 
   it 'reopen' do
     subject.warn "ABCDEF"
@@ -31,6 +31,7 @@ describe ServerEngine::DaemonLogger do
   it 'level set by int' do
     subject.level = Logger::FATAL
     subject.level.should == Logger::FATAL
+    subject.trace?.should == false
     subject.debug?.should == false
     subject.info?.should  == false
     subject.warn?.should  == false
@@ -39,6 +40,7 @@ describe ServerEngine::DaemonLogger do
 
     subject.level = Logger::ERROR
     subject.level.should == Logger::ERROR
+    subject.trace?.should == false
     subject.debug?.should == false
     subject.info?.should  == false
     subject.warn?.should  == false
@@ -47,6 +49,7 @@ describe ServerEngine::DaemonLogger do
 
     subject.level = Logger::WARN
     subject.level.should == Logger::WARN
+    subject.trace?.should == false
     subject.debug?.should == false
     subject.info?.should  == false
     subject.warn?.should  == true
@@ -55,6 +58,7 @@ describe ServerEngine::DaemonLogger do
 
     subject.level = Logger::INFO
     subject.level.should == Logger::INFO
+    subject.trace?.should == false
     subject.debug?.should == false
     subject.info?.should  == true
     subject.warn?.should  == true
@@ -63,6 +67,16 @@ describe ServerEngine::DaemonLogger do
 
     subject.level = Logger::DEBUG
     subject.level.should == Logger::DEBUG
+    subject.trace?.should == false
+    subject.debug?.should == true
+    subject.info?.should  == true
+    subject.warn?.should  == true
+    subject.error?.should == true
+    subject.fatal?.should == true
+
+    subject.level = DaemonLogger::TRACE
+    subject.level.should == DaemonLogger::TRACE
+    subject.trace?.should == true
     subject.debug?.should == true
     subject.info?.should  == true
     subject.warn?.should  == true
@@ -85,6 +99,9 @@ describe ServerEngine::DaemonLogger do
 
     subject.level = 'debug'
     subject.level.should == Logger::DEBUG
+
+    subject.level = 'trace'
+    subject.level.should == DaemonLogger::TRACE
   end
 
   it 'unknown level' do
@@ -92,7 +109,7 @@ describe ServerEngine::DaemonLogger do
   end
 
   it 'rotation' do
-    log = DaemonLogger.new("tmp/se1.log", level: 'info', log_rotate_age: 3, log_rotate_size: 10)
+    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
     log.warn "test1"
     File.exist?("tmp/se1.log").should == true
     File.exist?("tmp/se1.log.0").should == false
