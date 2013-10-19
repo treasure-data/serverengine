@@ -33,10 +33,6 @@ module ServerEngine
       self.path = path
     end
 
-    def same_io?(io)
-      @logdev == io || @file_dev.dev == io
-    end
-
     def path=(path)
       # overwrite @logdev
       if path.respond_to?(:write) and path.respond_to?(:close)

@@ -358,7 +358,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **worker_immediate_kill_timeout** sets promotion timeout from QUIT to KILL signal in seconds. -1 means no timeout (default: 600) [dynamic reloadable]
 - Logger
   - **log** sets path to log file. Set "-" for STDOUT (default: STDERR) [dynamic reloadable]
-  - **log_level** log level: debug, info, warn, error or fatal. (default: debug) [dynamic reloadable]
+  - **log_level** log level: trace, debug, info, warn, error or fatal. (default: debug) [dynamic reloadable]
   - **log_rotate_age** generations to keep rotated log files (default: 5)
   - **log_rotate_size** sets the size to rotate log files (default: 1048576)
   - **log_stdout** hooks STDOUT to log file (default: true)

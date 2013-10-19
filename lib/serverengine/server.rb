@@ -26,6 +26,11 @@ module ServerEngine
       @stop = false
 
       super(load_config_proc, &block)
+
+      @log_stdout = !!@config.fetch(:log_stdout, true)
+      @log_stderr = !!@config.fetch(:log_stderr, true)
+      @log_stdout = false if @config[:log] == '-'
+      @log_stderr = false if @config[:log] == nil
     end
 
     def before_run
@@ -99,10 +104,6 @@ module ServerEngine
     end
 
     def start_io_logging_thread(io)
-      if @logger.same_io?(io)
-        return
-      end
-
       r, w = IO.pipe
       io.reopen(w)
       w.close
