@@ -202,7 +202,8 @@ module ServerEngine
         end
 
         # inter-process locking
-        retry_limit = 10
+        retry_limit = 8
+        retry_sleep = 0.1
         begin
           # 1) other process is log-rotating now
           # 2) other process log rotated
@@ -222,8 +223,9 @@ module ServerEngine
           end
         rescue Errno::ENOENT => e
           raise e if retry_limit <= 0
+          sleep retry_sleep
           retry_limit -= 1
-          sleep 0.2
+          retry_sleep *= 2
           retry
         end
 
@@ -233,11 +235,13 @@ module ServerEngine
 
       def log_rotate
         (@shift_age-2).downto(0) do |i|
-          if FileTest.exist?("#{@path}.#{i}")
-            File.rename("#{@path}.#{i}", "#{@path}.#{i+1}")
+          old_path = "#{@path}.#{i}"
+          shift_path = "#{@path}.#{i+1}"
+          if FileTest.exist?(old_path)
+            File.rename(old_path, shift_path)
           end
         end
-        File.rename("#{@path}", "#{@path}.0")
+        File.rename(@path, "#{@path}.0")
         @file.reopen(@path, 'a')
         @file.sync = true
       rescue => e
