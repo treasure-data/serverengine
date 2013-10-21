@@ -20,7 +20,7 @@ module ServerEngine
   require 'logger'
 
   class DaemonLogger < Logger
-    def initialize(path, config={})
+    def initialize(logdev, config={})
       rotate_age = config[:log_rotate_age] || 5
       rotate_size = config[:log_rotate_size] || 1048576
 
@@ -30,25 +30,23 @@ module ServerEngine
       super(nil)
 
       self.level = config[:log_level] || 'debug'
-      self.path = path
+      self.logdev = logdev
     end
 
-    def path=(path)
-      # overwrite @logdev
-      if path.respond_to?(:write) and path.respond_to?(:close)
+    def logdev=(logdev)
+      # overwrites Logger's @logdev variable
+      if logdev.respond_to?(:write) and logdev.respond_to?(:close)
         # IO
-        @logdev = path
+        @logdev = logdev
         @logdev.sync = true if @logdev.respond_to?(:sync=)
         @file_dev.path = nil
       else
-        # path
-        @file_dev.path = path
+        # path string
+        @file_dev.path = logdev
         @logdev = @file_dev
       end
-      path
+      logdev
     end
-
-    attr_reader :path
 
     # override add method
     def add(severity, message = nil, progname = nil, &block)

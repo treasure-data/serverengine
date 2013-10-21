@@ -41,9 +41,11 @@ module ServerEngine
       @logger_class = @config[:logger_class] || DaemonLogger
 
       if @logger
-        path = log_path_from_config(@config)
-        unless path.is_a?(IO)
-          @logger.path = io
+        logdev = logdev_from_config(@config)
+        unless logdev.is_a?(IO)
+          # Here doesn't allow to change logdev to IO dynamically
+          # because Server#start_io_logging_thread can't follow it.
+          @logger.logdev = io
         end
         @logger.level = @config[:log_level] || 'debug'
       end
@@ -59,10 +61,10 @@ module ServerEngine
         return
       end
 
-      @logger = @logger_class.new(log_path_from_config(@config), @config)
+      @logger = @logger_class.new(logdev_from_config(@config), @config)
     end
 
-    def log_path_from_config(config)
+    def logdev_from_config(config)
       case c = @config[:log]
       when nil  # default
         return STDERR

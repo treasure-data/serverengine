@@ -17,7 +17,7 @@ describe ServerEngine::DaemonLogger do
   end
 
   it 'reset path' do
-    subject.path = 'tmp/se2.log'
+    subject.logdev = 'tmp/se2.log'
     subject.warn "test"
 
     File.read('tmp/se2.log').should =~ /test$/
