@@ -137,6 +137,12 @@ se = ServerEngine.create(MyServer, MyWorker, {
 se.run
 ```
 
+ServerEngine's default logger extends from Ruby's standard Logger library to:
+
+* support multiprocess aware log rotation
+* support reopening of log file
+* support 'trace' level, which is lower level than 'debug'
+
 See also **Configuration** section bellow.
 
 
