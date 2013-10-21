@@ -39,6 +39,7 @@ module ServerEngine
         # IO
         @logdev = path
         @logdev.sync = true if @logdev.respond_to?(:sync=)
+        @file_dev.path = nil
       else
         # path
         @file_dev.path = path
@@ -99,10 +100,7 @@ module ServerEngine
     def trace?; @level <= TRACE; end
 
     def reopen!
-      if @path
-        @io.reopen(@path, "a")
-        @io.sync = true
-      end
+      @file_dev.reopen!
       nil
     end
 
@@ -117,9 +115,7 @@ module ServerEngine
     end
 
     def close
-      if @path
-        @io.close unless @io.closed?
-      end
+      @file_dev.close
       nil
     end
 
@@ -171,8 +167,12 @@ module ServerEngine
       attr_reader :path
 
       def reopen!
-        @file.reopen(@path, 'a')
-        @file.sync = true
+        @mutex.synchronize do
+          if @file
+            @file.reopen(@path, 'a')
+            @file.sync = true
+          end
+        end
         true
       end
 
@@ -237,10 +237,9 @@ module ServerEngine
             File.rename("#{@path}.#{i}", "#{@path}.#{i+1}")
           end
         end
-        #if FileTest.exist?("#{@path}")
-          File.rename("#{@path}", "#{@path}.0")
-        #end
-        reopen!
+        File.rename("#{@path}", "#{@path}.0")
+        @file.reopen(@path, 'a')
+        @file.sync = true
       rescue => e
         warn "log rotation failed: #{e}"
       end
