@@ -1,4 +1,9 @@
 
+2013-10-31 version 1.5.7:
+
+* Fixed :log parameter handling
+
+
 2013-10-20 version 1.5.6:
 
 * Fixed log rotation in worker_type=process mode [#9]
