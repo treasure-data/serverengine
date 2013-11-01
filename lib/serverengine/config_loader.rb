@@ -45,7 +45,7 @@ module ServerEngine
         unless logdev.is_a?(IO)
           # Here doesn't allow to change logdev to IO dynamically
           # because Server#start_io_logging_thread can't follow it.
-          @logger.logdev = io
+          @logger.logdev = logdev
         end
         @logger.level = @config[:log_level] || 'debug'
       end

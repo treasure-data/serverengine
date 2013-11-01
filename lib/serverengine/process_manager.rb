@@ -30,7 +30,7 @@ module ServerEngine
       @graceful_kill_signal = config[:graceful_kill_signal] || :TERM
       @immediate_kill_signal = config[:immediate_kill_signal] || :QUIT
 
-      @auto_tick = config.fetch(:auto_tick, true)
+      @auto_tick = !!config.fetch(:auto_tick, true)
       @auto_tick_interval = config[:auto_tick_interval] || 1
 
       @enable_heartbeat = !!config[:enable_heartbeat]
