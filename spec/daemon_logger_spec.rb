@@ -138,4 +138,27 @@ describe ServerEngine::DaemonLogger do
     log.debug "stdout logging test"
     log.reopen!
   end
+
+  it 'inter-process locking on rotation' do
+    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
+    r, w = IO.pipe
+    $stderr = w # To capture #warn output in DaemonLogger
+    pid1 = Process.fork do
+      10.times do
+        log.info '0' * 15
+      end
+    end
+    pid2 = Process.fork do
+      10.times do
+        log.info '0' * 15
+      end
+    end
+    Process.waitpid pid1
+    Process.waitpid pid2
+    w.close
+    stderr = r.read
+    r.close
+    $stderr = STDERR
+    stderr.should_not =~ /(log shifting failed|log writing failed|log rotation inter-process lock failed)/
+  end
 end
