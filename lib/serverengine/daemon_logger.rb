@@ -210,13 +210,14 @@ module ServerEngine
           begin
             lock.flock(File::LOCK_EX)
             ino = lock.stat.ino
-            if ino == File.stat(@path).ino
+            if ino == File.stat(@path).ino and ino == stat.ino
               # 3)
               log_rotate
             else
-              reopen!
+              @file.reopen(@path, 'a')
+              @file.sync = true
             end
-          rescue
+          ensure
             lock.close
           end
         rescue Errno::ENOENT => e
