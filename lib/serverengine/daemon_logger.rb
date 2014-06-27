@@ -32,7 +32,7 @@ module ServerEngine
         logdev_class = LogDevice
       end
 
-      @file_dev = MultiprocessFileLogDevice.new(nil,
+      @file_dev = logdev_class.new(nil,
         shift_age: rotate_age, shift_size: rotate_size)
 
       super(nil)
