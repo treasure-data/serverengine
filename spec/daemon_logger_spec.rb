@@ -109,23 +109,25 @@ describe ServerEngine::DaemonLogger do
   end
 
   it 'rotation' do
-    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
-    log.warn "test1"
+    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10000)
+    # 100 bytes
+    log.warn "test1"*20
     File.exist?("tmp/se1.log").should == true
     File.exist?("tmp/se1.log.0").should == false
 
-    log.warn "test2"
+    # 10000 bytes
+    100.times { log.warn "test2"*20 }
     File.exist?("tmp/se1.log").should == true
     File.exist?("tmp/se1.log.0").should == true
     File.read("tmp/se1.log.0") =~ /test2$/
 
-    log.warn "test3"
-    log.warn "test4"
+    # 10000 bytes
+    100.times { log.warn "test3"*20 }
     File.exist?("tmp/se1.log").should == true
-    File.exist?("tmp/se1.log.2").should == true
-    File.exist?("tmp/se1.log.3").should == false
+    File.exist?("tmp/se1.log.1").should == true
+    File.exist?("tmp/se1.log.2").should == false
 
-    log.warn "test5"
+    log.warn "test4"*20
     File.read("tmp/se1.log.0") =~ /test5$/
   end
 

@@ -21,19 +21,16 @@ module ServerEngine
 
   class DaemonLogger < Logger
     def initialize(logdev, config={})
-      rotate_age = config[:log_rotate_age] || 5
-      rotate_size = config[:log_rotate_size] || 1048576
+      @rotate_age = config[:log_rotate_age] || 5
+      @rotate_size = config[:log_rotate_size] || 1048576
 
       if RUBY_VERSION < "2.1.0"
         # Ruby < 2.1.0 has a problem around log rotation with multiprocess:
         # https://github.com/ruby/ruby/pull/428
-        logdev_class = MultiprocessFileLogDevice
+        @logdev_class = MultiprocessFileLogDevice
       else
-        logdev_class = LogDevice
+        @logdev_class = LogDevice
       end
-
-      @file_dev = logdev_class.new(nil,
-        shift_age: rotate_age, shift_size: rotate_size)
 
       super(nil)
 
@@ -47,10 +44,16 @@ module ServerEngine
         # IO
         @logdev = logdev
         @logdev.sync = true if @logdev.respond_to?(:sync=)
-        @file_dev.path = nil
-      else
-        # path string
-        @file_dev.path = logdev
+        if @file_dev
+          old_file_dev = @file_dev
+          @file_dev = nil
+          old_file_dev.close
+        end
+      elsif !@file_dev || @file_dev.filename != logdev
+        # update path string
+        old_file_dev = @file_dev
+        @file_dev = @logdev_class.new(logdev, shift_age: @rotate_age, shift_size: @rotate_size)
+        old_file_dev.close if old_file_dev
         @logdev = @file_dev
       end
       logdev
@@ -106,7 +109,7 @@ module ServerEngine
     def trace?; @level <= TRACE; end
 
     def reopen!
-      @file_dev.reopen!
+      @file_dev.reopen! if @file_dev
       nil
     end
 
@@ -121,7 +124,7 @@ module ServerEngine
     end
 
     def close
-      @file_dev.close
+      @file_dev.close if @file_dev
       nil
     end
 
@@ -169,8 +172,6 @@ module ServerEngine
         end
         nil
       end
-
-      attr_reader :path
 
       def reopen!
         @mutex.synchronize do
