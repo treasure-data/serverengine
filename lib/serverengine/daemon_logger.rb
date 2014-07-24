@@ -19,6 +19,15 @@ module ServerEngine
 
   require 'logger'
 
+  class ::Logger::LogDevice
+    def reopen!
+      if filename = @filename
+        @dev.reopen(filename, 'a')
+        @dev.sync = true
+      end
+    end
+  end
+
   class DaemonLogger < Logger
     def initialize(logdev, config={})
       @rotate_age = config[:log_rotate_age] || 5

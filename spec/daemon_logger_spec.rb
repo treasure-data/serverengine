@@ -11,9 +11,13 @@ describe ServerEngine::DaemonLogger do
   it 'reopen' do
     subject.warn "ABCDEF"
     File.open('tmp/se1.log', "w") {|f| }
-    subject.warn "test2"
 
+    subject.warn "test2"
     File.read('tmp/se1.log').should_not =~ /ABCDEF/
+
+    subject.reopen!
+    subject.warn "test3"
+    File.read('tmp/se1.log').should =~ /test3/
   end
 
   it 'reset path' do
