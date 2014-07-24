@@ -1,4 +1,9 @@
 
+2014-07-24 version 1.5.9:
+
+* Fixed DaemonLogger#reoepen! on Ruby >= 2.1.0
+
+
 2014-06-27 version 1.5.8:
 
 * Use standard LogDevice on Ruby >= 2.1.0 imporoved at https://github.com/ruby/ruby/pull/428
