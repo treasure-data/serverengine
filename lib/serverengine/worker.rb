@@ -20,13 +20,16 @@ module ServerEngine
   class Worker
     def initialize(server, worker_id)
       @server = server
-      @config = server.config
       @logger = @server.logger
       @worker_id = worker_id
     end
 
     attr_reader :server, :worker_id
-    attr_accessor :config, :logger
+    attr_accessor :logger
+
+    def config
+      @server.config
+    end
 
     def before_fork
     end
