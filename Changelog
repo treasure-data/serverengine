@@ -1,4 +1,13 @@
 
+2014-10-27 version 1.5.10:
+
+* Added worker_type=spawn (experimental)
+* Fixed Worker#config to reference Server#config so that Worker#reload reads
+  the new config reloaded by Server#reload (=ConfigLoader#reload_config) in
+  worker_type=thread and embedded
+* Server#stop, #restart and #reload show a debug log message
+
+
 2014-07-24 version 1.5.9:
 
 * Fixed DaemonLogger#reoepen! on Ruby >= 2.1.0
