@@ -58,6 +58,7 @@ module ServerEngine
             ServerEngine.dump_uncaught_error(e)
           end
         end
+        nil
       end
 
       def join
