@@ -50,9 +50,9 @@ module MyWorker
 end
 
 se = ServerEngine.create(nil, MyWorker, {
-  :daemonize => true,
-  :log => 'myserver.log',
-  :pid_path => 'myserver.pid',
+  daemonize: true,
+  log: 'myserver.log',
+  pid_path: 'myserver.pid',
 })
 se.run
 ```
@@ -66,11 +66,11 @@ Simply set **worker_type=process** or **worker_type=thread** parameter, and set 
 
 ```ruby
 se = ServerEngine.create(nil, MyWorker, {
-  :daemonize => true,
-  :log => 'myserver.log',
-  :pid_path => 'myserver.pid',
-  :worker_type => 'process',
-  :workers => 4,
+  daemonize: true,
+  log: 'myserver.log',
+  pid_path: 'myserver.pid',
+  worker_type: 'process',
+  workers: 4,
 })
 se.run
 ```
@@ -111,13 +111,54 @@ module MyWorker
 end
 
 se = ServerEngine.create(MyServer, MyWorker, {
-  :daemonize => true,
-  :log => 'myserver.log',
-  :pid_path => 'myserver.pid',
-  :worker_type => 'process',
-  :workers => 4,
-  :bind => '0.0.0.0',
-  :port => 9071,
+  daemonize: true,
+  log: 'myserver.log',
+  pid_path: 'myserver.pid',
+  worker_type: 'process',
+  workers: 4,
+  bind: '0.0.0.0',
+  port: 9071,
+})
+se.run
+```
+
+
+### Multiprocess server on Windows and JRuby platform
+
+Above **worker_type=process** depends on `fork` system call, which doesn't work on Windows or JRuby platform.
+ServerEngine provides **worker_type=spawn** for those platforms (This is still EXPERIMENTAL). However, unfortunately, you need to implement different worker module because `worker_type=spawn` is not compatible with **worker_type=process** in terms of API.
+
+What you need to implement at least to use worker_type=spawn is `spawn(process_manager)` method. You will call `process_manager.spawn` at the method, where `spawn` is same with `Process.spawn` excepting return value.
+
+```ruby
+module MyWorker
+  def spawn(process_manager)
+    env = {
+      'SERVER_ENGINE_CONFIG' => config.to_json
+    }
+    script = %[
+      require 'serverengine'
+      require 'json'
+
+      conf = JSON.parse(ENV['SERVER_ENGINE_CONFIG'], symbolize_names: true)
+      logger = ServerEngine::DaemonLogger.new(conf[:log] || STDOUT, conf)
+
+      @stop = false
+      trap(:SIGTERM) { @stop = true }
+      trap(:SIGINT) { @stop = true }
+
+      until @stop
+        logger.info 'Awesome work!'
+        sleep 1
+      end
+    ]
+    process_manager.spawn(env, "ruby", "-e", script)
+  end
+end
+
+se = ServerEngine.create(nil, MyWorker, {
+  worker_type: 'spawn',
+  log: 'myserver.log',
 })
 se.run
 ```
@@ -129,10 +170,10 @@ ServerEngine logger rotates logs by 1MB and keeps 5 generations by default.
 
 ```ruby
 se = ServerEngine.create(MyServer, MyWorker, {
-  :log => 'myserver.log',
-  :log_level => 'debug',
-  :log_rotate_age => 5,
-  :log_rotate_size => 1*1024*1024,
+  log: 'myserver.log',
+  log_level: 'debug',
+  log_rotate_age: 5,
+  log_rotate_size: 1*1024*1024,
 })
 se.run
 ```
@@ -154,9 +195,9 @@ Supervisor process runs as the parent process of the server process and monitor 
 
 ```ruby
 se = ServerEngine.create(nil, MyWorker, {
-  :daemonize => true,
-  :pid_path => 'myserver.pid',
-  :supervisor => true,  # enable supervisor process
+  daemonize: true,
+  pid_path: 'myserver.pid',
+  supervisor: true,  # enable supervisor process
 })
 se.run
 ```
@@ -229,8 +270,8 @@ end
 
 se = ServerEngine.create(nil, MyWorker) do
   YAML.load_file("config.yml").merge({
-    :daemonize => true,
-    :worker_type => 'process',
+    daemonize: true,
+    worker_type: 'process',
   })
 end
 se.run
@@ -264,8 +305,8 @@ end
 
 se = ServerEngine.create(nil, MyWorker) do
   YAML.load_file(config).merge({
-    :daemonize => true,
-    :worker_type => 'process'
+    daemonize: true,
+    worker_type: 'process'
   })
 end
 se.run
@@ -276,13 +317,16 @@ se.run
 
 ### Worker module
 
+Available methods are different depending on `worker_type`.
+
 - interface
   - `initialize` is called in the parent process (or thread) in contrast to the other methods
-  - `before_fork` is called before fork for each worker process (available only if `worker_type` is "process" or "thread")
-  - `run` is the required method
-  - `stop` is called when TERM signal is received
-  - `reload` is called when USR2 signal is received
-  - `after_start` is called after starting the worker process in the parent process (or thread) (available only if `worker_type` is "process" or "thread")
+  - `before_fork` is called before fork for each worker process [`worker_type` = "thread", "process"]
+  - `run` is the required method for `worker_type` = "embedded", "thread", "process"
+  - `spawn(process_manager)` is the required method for `worker_type` = "spawn". Should call `process_manager.spawn([env,] command... [,options])`.
+  - `stop` is called when TERM signal is received [`worker_type` = "embedded", "thread", "process"]
+  - `reload` is called when USR2 signal is received [`worker_type` = "embedded", "thread", "process"]
+  - `after_start` is called after starting the worker process in the parent process (or thread) [`worker_type` = "thread", "process", "spawn"]
 - api
   - `server` server instance
   - `config` configuration
@@ -296,7 +340,7 @@ se.run
   - `initialize` is called in the parent process in contrast to the other methods
   - `before_run` is called before starting workers
   - `after_run` is called before shutting down
-  - `after_start` is called after starting the server process in the parent process (available only if `supervisor` parameter is true)
+  - `after_start` is called after starting the server process in the parent process (available if `supervisor` parameter is true)
 - hook points (call `super` in these methods)
   - `reload_config`
   - `stop(stop_graceful)`
@@ -312,7 +356,8 @@ ServerEngine supports 3 worker types:
 
 - **embedded**: uses a thread to run worker module (default). This type doesn't support immediate shutdown or immediate restart.
 - **thread**: uses threads to run worker modules. This type doesn't support immediate shutdown or immediate restart.
-- **process**: uses processes to run worker modules. This type doesn't work on Win32 platform.
+- **process**: uses processes to run worker modules. This type doesn't work on Windows or JRuby platform.
+- **spawn**: uses processes to run worker modules. This type works on Windows and JRuby platform but available interface of worker module is limited (See also Worker module section).
 
 
 ## Signals
@@ -352,7 +397,7 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **workers** sets number of workers (default: 1) [dynamic reloadable]
   - **start_worker_delay** sets wait time before starting a new worker (default: 0) [dynamic reloadable]
   - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2) [dynamic reloadable]
-- Multiprocess server: available only when `worker_type` is "process" [dynamic reloadable]
+- Multiprocess server: available only when `worker_type` is "process"
   - **worker_process_name** changes process name ($0) of workers [dynamic reloadable]
   - **worker_heartbeat_interval** sets interval of heartbeats in seconds (default: 1.0) [dynamic reloadable]
   - **worker_heartbeat_timeout** sets timeout of heartbeat in seconds (default: 180) [dynamic reloadable]
@@ -362,6 +407,9 @@ Graceful shutdown and restart call `Worker#stop` method and wait for completion 
   - **worker_immediate_kill_interval** sets the first interval of QUIT signals in seconds (default: 10) [dynamic reloadable]
   - **worker_immediate_kill_interval_increment** sets increment of QUIT signal interval in seconds (default: 10) [dynamic reloadable]
   - **worker_immediate_kill_timeout** sets promotion timeout from QUIT to KILL signal in seconds. -1 means no timeout (default: 600) [dynamic reloadable]
+- Multiprocess spawn server: available only when `worker_type` is "spawn"
+  - all parameters of multiprocess server excepting worker_process_name
+  - **worker_reload_signal** sets the signal to notice configuration reload to a spawned process. Set nil to disable (default: nil)
 - Logger
   - **log** sets path to log file. Set "-" for STDOUT (default: STDERR) [dynamic reloadable]
   - **log_level** log level: trace, debug, info, warn, error or fatal. (default: debug) [dynamic reloadable]

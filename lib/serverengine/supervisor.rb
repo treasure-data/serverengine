@@ -72,6 +72,8 @@ module ServerEngine
         server_class = MultiProcessServer
       when 'thread'
         server_class = MultiThreadServer
+      when 'spawn'
+        server_class = MultiSpawnServer
       else
         raise ArgumentError, "unexpected :worker_type option #{wt}"
       end

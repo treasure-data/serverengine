@@ -33,6 +33,7 @@ module ServerEngine
     :MultiWorkerServer => 'serverengine/multi_worker_server',
     :MultiProcessServer => 'serverengine/multi_process_server',
     :MultiThreadServer => 'serverengine/multi_thread_server',
+    :MultiSpawnServer => 'serverengine/multi_spawn_server',
     :ProcessManager => 'serverengine/process_manager',
     :Worker => 'serverengine/worker',
     :VERSION => 'serverengine/version',

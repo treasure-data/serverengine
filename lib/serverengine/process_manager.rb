@@ -146,7 +146,7 @@ module ServerEngine
       rpipe, wpipe = new_pipe_pair
 
       begin
-        options[wpipe.fileno] = wpipe
+        options[[wpipe.fileno]] = wpipe
         if @enable_heartbeat
           env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
         end
