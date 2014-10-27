@@ -40,6 +40,7 @@ module ServerEngine
     end
 
     def stop(stop_graceful)
+      @logger.info "Received #{stop_graceful ? 'graceful' : 'immediate'} stop" if @logger
       @stop = true
       nil
     end
@@ -48,12 +49,14 @@ module ServerEngine
     end
 
     def restart(stop_graceful)
+      @logger.info "Received #{stop_graceful ? 'graceful' : 'immediate'} restart" if @logger
       reload_config
       @logger.reopen! if @logger
       nil
     end
 
     def reload
+      @logger.info "Received reload" if @logger
       reload_config
       @logger.reopen! if @logger
       nil
