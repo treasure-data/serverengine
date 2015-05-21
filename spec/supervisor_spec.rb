@@ -9,6 +9,97 @@ describe ServerEngine::Supervisor do
     return sv, t
   end
 
+  def start_daemon(config={})
+    config.merge!(supervisor: true)
+    daemon = Daemon.new(nil, TestWorker, config)
+    t = Thread.new { daemon.main }
+
+    return daemon, t
+  end
+
+  context 'when :log option is given' do
+    it 'can start' do
+      daemon, t = start_daemon(log: STDOUT)
+
+      begin
+        wait_for_fork
+        sv = daemon.server
+
+        test_state(:worker_run).should == 1
+        sv.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
+      ensure
+        sv.stop(true)
+        t.join
+      end
+    end
+  end
+
+  context 'when :logger option is given' do
+    it 'start ignoring Logger' do
+      daemon, t = start_daemon(logger: Logger.new(STDOUT))
+
+      begin
+        wait_for_fork
+        sv = daemon.server
+
+        test_state(:worker_run).should == 1
+        sv.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
+      ensure
+        sv.stop(true)
+        t.kill # temporary
+        t.join
+      end
+    end
+
+    it 'start with ServerEngine::DaemonLogger' do
+      daemon, t = start_daemon(logger: ServerEngine::DaemonLogger.new(STDOUT))
+
+      begin
+        wait_for_fork
+        sv = daemon.server
+
+        test_state(:worker_run).should == 1
+        sv.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
+      ensure
+        sv.stop(true)
+        t.join
+      end
+    end
+  end
+
+  context 'when both :logger and :log options are given' do
+    it 'start ignoring Logger' do
+      daemon, t = start_daemon(logger: Logger.new(STDOUT), log: STDOUT)
+
+      begin
+        wait_for_fork
+        sv = daemon.server
+
+        test_state(:worker_run).should == 1
+        sv.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
+      ensure
+        sv.stop(true)
+        t.kill # temporary
+        t.join
+      end
+    end
+
+    it 'start with ServerEngine::DaemonLogger' do
+      daemon, t = start_daemon(logger: ServerEngine::DaemonLogger.new(STDOUT), log: STDOUT)
+
+      begin
+        wait_for_fork
+        sv = daemon.server
+
+        test_state(:worker_run).should == 1
+        sv.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
+      ensure
+        sv.stop(true)
+        t.join
+      end
+    end
+  end
+
   it 'start and graceful stop' do
     sv, t = start_supervisor
 
