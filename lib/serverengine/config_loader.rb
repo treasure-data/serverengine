@@ -56,8 +56,8 @@ module ServerEngine
     private
 
     def create_logger
-      if logger = @config[:logger]
-        @logger = logger
+      if @config[:logger].is_a?(DaemonLogger)
+        @logger = @config[:logger]
         return
       end
 

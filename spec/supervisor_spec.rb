@@ -46,7 +46,6 @@ describe ServerEngine::Supervisor do
         sv.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
       ensure
         sv.stop(true)
-        t.kill # temporary
         t.join
       end
     end
@@ -79,7 +78,6 @@ describe ServerEngine::Supervisor do
         sv.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
       ensure
         sv.stop(true)
-        t.kill # temporary
         t.join
       end
     end
