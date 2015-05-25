@@ -10,4 +10,4 @@ branches:
   only:
     - master
 
-script: bundle exec rake
+script: bundle exec rake spec
