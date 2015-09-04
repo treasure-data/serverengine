@@ -79,8 +79,8 @@ module ServerEngine
       create_logger unless @logger
 
       # start threads to transfer logs from STDOUT/ERR to the logger
-      start_io_logging_thread(STDOUT) if @log_stdout
-      start_io_logging_thread(STDERR) if @log_stderr
+      start_io_logging_thread(STDOUT) if @log_stdout && try_get_io_from_logger(@logger) != STDOUT
+      start_io_logging_thread(STDERR) if @log_stderr && try_get_io_from_logger(@logger) != STDERR
 
       before_run
 
@@ -97,6 +97,20 @@ module ServerEngine
     end
 
     private
+
+    # If :logger option is set unexpectedly, reading from STDOUT/ERR
+    # and writing to :logger could cause infinite loop because
+    # :logger may write data to STDOUT/ERR.
+    def try_get_io_from_logger(logger)
+      logdev = logger.instance_eval { @logdev }
+      if logdev.respond_to?(:dev)
+        # ::Logger
+        logdev.dev
+      else
+        # logdev is IO if DaemonLogger. otherwise unknown object including nil
+        logdev
+      end
+    end
 
     def create_worker(wid)
       w = Worker.new(self, wid)
