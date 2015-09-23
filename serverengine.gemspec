@@ -8,7 +8,7 @@ Gem::Specification.new do |gem|
   gem.email         = ["frsyuki@gmail.com"]
   gem.description   = %q{A framework to implement robust multiprocess servers like Unicorn}
   gem.summary       = %q{ServerEngine - multiprocess server framework}
-  gem.homepage      = "https://github.com/frsyuki/serverengine"
+  gem.homepage      = "https://github.com/fluent/serverengine"
   gem.license       = "Apache 2.0"
 
   gem.files         = `git ls-files`.split($\)
