@@ -17,6 +17,13 @@
 #
 module ServerEngine
 
+  IS_WINDOWS = /mswin|mingw/ === RUBY_PLATFORM
+  private_constant :IS_WINDOWS
+
+  def self.windows?
+    IS_WINDOWS
+  end
+
   module ClassMethods
     def dump_uncaught_error(e)
       STDERR.write "Unexpected error #{e}\n"
