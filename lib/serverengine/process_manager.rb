@@ -18,6 +18,7 @@
 module ServerEngine
 
   require 'fcntl'
+  require 'drb/drb'
 
   class ProcessManager
     def initialize(config={})
@@ -60,6 +61,8 @@ module ServerEngine
     attr_accessor :logger
 
     attr_accessor :cloexec_mode
+
+    attr_accessor :drb, :uds
 
     attr_reader :graceful_kill_signal, :immediate_kill_signal
     attr_reader :auto_tick, :auto_tick_interval
@@ -151,7 +154,13 @@ module ServerEngine
           env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
         end
 
-        pid = Process.spawn(env, *args, options)
+        options[:close_others] = false
+
+        # TODO: option
+        spawn_command = args[0].to_s + " #{@uds.fileno.to_s}##{@drb} "
+
+        pid = Process.spawn(env, spawn_command, options)
+        # pid = Process.spawn(env, *args, options)
 
         m = Monitor.new(self, pid)
 
