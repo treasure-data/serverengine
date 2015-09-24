@@ -52,9 +52,9 @@ module ServerEngine
       @closed = false
       @read_buffer = ''
 
-      if @auto_tick
-        TickThread.new(self)
-      end
+    end
+    if @auto_tick
+      TickThread.new(self)
     end
 
     attr_accessor :logger
@@ -146,9 +146,12 @@ module ServerEngine
       rpipe, wpipe = new_pipe_pair
 
       begin
-        options[[wpipe.fileno]] = wpipe
-        if @enable_heartbeat
-          env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+
+        unless $platformwin
+          options[[wpipe.fileno]] = wpipe
+          if @enable_heartbeat
+            env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+          end
         end
 
         pid = Process.spawn(env, *args, options)
@@ -211,7 +214,11 @@ module ServerEngine
       if ready_pipes
         ready_pipes.each do |r|
           begin
-            r.read_nonblock(1024, @read_buffer)
+            if $platformwin
+              r.read(1024, @read_buffer)
+            else
+              r.read_nonblock(1024, @read_buffer)
+            end
           rescue Errno::EAGAIN, Errno::EINTR
             next
           rescue #EOFError

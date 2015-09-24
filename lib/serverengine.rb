@@ -47,6 +47,8 @@ module ServerEngine
     require File.join(here, v)
   }
 
+  $platformwin = /mswin|mingw/ === RUBY_PLATFORM
+
   def self.create(server_module, worker_module, load_config_proc={}, &block)
     Daemon.new(server_module, worker_module, load_config_proc, &block)
   end

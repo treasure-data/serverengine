@@ -51,7 +51,7 @@ module ServerEngine
 
     module Signals
       GRACEFUL_STOP = :TERM
-      IMMEDIATE_STOP = :QUIT
+      IMMEDIATE_STOP = $platformwin ? :KILL : :QUIT
       GRACEFUL_RESTART = :USR1
       IMMEDIATE_RESTART = :HUP
       RELOAD = :USR2
