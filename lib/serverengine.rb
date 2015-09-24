@@ -36,6 +36,7 @@ module ServerEngine
     :MultiSpawnServer => 'serverengine/multi_spawn_server',
     :ProcessManager => 'serverengine/process_manager',
     :Worker => 'serverengine/worker',
+    :SocketManager => 'serverengine/socket_manager',
     :VERSION => 'serverengine/version',
   }.each_pair {|k,v|
     autoload k, File.expand_path(v, File.dirname(__FILE__))
