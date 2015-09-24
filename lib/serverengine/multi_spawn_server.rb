@@ -32,6 +32,9 @@ module ServerEngine
     end
 
     def run
+      # TODO: option
+      create_socket_manager
+
       super
     ensure
       @pm.close
@@ -43,6 +46,16 @@ module ServerEngine
     end
 
     private
+
+    def create_socket_manager
+      sm = SocketManager::Server.new
+      DRb.start_service(nil, sm)
+      drb_uri = DRb.uri
+      unix_socket_client = sm.new_unix_socket
+      unix_socket_client.fcntl(Fcntl::F_SETFD, 0)
+      @pm.drb = drb_uri
+      @pm.uds = unix_socket_client
+    end
 
     def reload_config
       super
