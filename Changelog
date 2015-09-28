@@ -1,3 +1,8 @@
+2015-09-28 version 1.5.11:
+
+* Fix unexpected logger option handling [#22]
+* Fix gem homepage link
+
 
 2014-10-27 version 1.5.10:
 
