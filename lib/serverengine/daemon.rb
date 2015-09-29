@@ -22,6 +22,8 @@ module ServerEngine
   class Daemon
     include ConfigLoader
 
+    attr_reader :server
+
     def initialize(server_module, worker_module, load_config_proc={}, &block)
       @server_module = server_module
       @worker_module = worker_module
@@ -157,7 +159,7 @@ module ServerEngine
     private
 
     def create_server(logger)
-      @create_server_proc.call(@load_config_proc, logger)
+      @server = @create_server_proc.call(@load_config_proc, logger)
     end
   end
 end
