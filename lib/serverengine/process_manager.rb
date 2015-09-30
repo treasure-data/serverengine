@@ -149,18 +149,23 @@ module ServerEngine
       rpipe, wpipe = new_pipe_pair
 
       begin
-        options[[wpipe.fileno]] = wpipe
-        if @enable_heartbeat
-          env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+
+        pid = nil
+        if $platformwin
+          # TODO: use option
+          spawn_command = args[0].to_s + " #{@drb} "
+          pid = Process.spawn(env, spawn_command, options)
+        else
+          options[[wpipe.fileno]] = wpipe
+          if @enable_heartbeat
+            env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+          end
+
+          options[:close_others] = false
+          # TODO: use option
+          spawn_command = args[0].to_s + " #{@uds.fileno.to_s}##{@drb} "
+          pid = Process.spawn(env, spawn_command, options)
         end
-
-        options[:close_others] = false
-
-        # TODO: option
-        spawn_command = args[0].to_s + " #{@uds.fileno.to_s}##{@drb} "
-
-        pid = Process.spawn(env, spawn_command, options)
-        # pid = Process.spawn(env, *args, options)
 
         m = Monitor.new(self, pid)
 
