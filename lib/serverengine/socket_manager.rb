@@ -24,7 +24,6 @@ module ServerEngine
 
     def self.new_socket_manager
       uds_drb = ARGV[-1]
-      puts uds_drb
       unix_socket_client = UNIXSocket.for_fd(uds_drb.split('#').first.to_i)
       drb_uri = uds_drb.split('#').last
       # if usc isn't int or drb isnt incluging str druby, generate error
@@ -73,7 +72,7 @@ module ServerEngine
             sock.setsockopt(:SOCKET, :REUSEADDR, true)
             sock.listen(Socket::SOMAXCONN)
           rescue
-            "failed to listen to #{bind_port}"
+            "failed to listen to #{bind}:#{port}"
           end
           sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
@@ -98,7 +97,7 @@ module ServerEngine
             end
             sock.bind(bind, port)
           rescue
-            "failed to create udp on #{bind_port}"
+            "failed to create udp on #{bind}:#{port}"
           end
           sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
