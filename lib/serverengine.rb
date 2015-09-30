@@ -37,6 +37,8 @@ module ServerEngine
     :ProcessManager => 'serverengine/process_manager',
     :Worker => 'serverengine/worker',
     :SocketManager => 'serverengine/socket_manager',
+    :SocketManagerWin => 'serverengine/socket_manager_win',
+    :Winsock => 'serverengine/winsock',
     :VERSION => 'serverengine/version',
   }.each_pair {|k,v|
     autoload k, File.expand_path(v, File.dirname(__FILE__))
@@ -47,6 +49,8 @@ module ServerEngine
   ].each {|v|
     require File.join(here, v)
   }
+
+  $platformwin = /mswin|mingw/ === RUBY_PLATFORM
 
   def self.create(server_module, worker_module, load_config_proc={}, &block)
     Daemon.new(server_module, worker_module, load_config_proc, &block)
