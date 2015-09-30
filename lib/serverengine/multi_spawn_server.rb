@@ -19,12 +19,20 @@ module ServerEngine
 
   class MultiSpawnServer < MultiWorkerServer
     def initialize(worker_module, load_config_proc={}, &block)
-      @pm = ProcessManager.new(
-        auto_tick: false,
-        graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
-        immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
-        enable_heartbeat: false,
-      )
+      if $platformwin
+        @pm = ProcessManager.new(
+          auto_tick: false,
+          graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
+          enable_heartbeat: false,
+        )
+      else
+        @pm = ProcessManager.new(
+          auto_tick: false,
+          graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
+          immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+          enable_heartbeat: false,
+        )
+      end
 
       super(worker_module, load_config_proc, &block)
 

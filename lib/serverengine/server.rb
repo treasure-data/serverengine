@@ -66,9 +66,9 @@ module ServerEngine
       s = self
       SignalThread.new do |st|
         st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
-        st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
         st.trap(Daemon::Signals::DETACH) { s.stop(true) }
         unless $platformwin
+          st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
           st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
           st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
           st.trap(Daemon::Signals::RELOAD) { s.reload }
