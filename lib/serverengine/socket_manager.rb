@@ -23,11 +23,25 @@ module ServerEngine
   module SocketManager
 
     def self.new_socket_manager
-      uds_drb = ARGV[-1]
-      unix_socket_client = UNIXSocket.for_fd(uds_drb.split('#').first.to_i)
-      drb_uri = uds_drb.split('#').last
-      # if usc isn't int or drb isnt incluging str druby, generate error
-      SocketManager::Client.new(unix_socket_client, drb_uri)
+      if $platformwin
+        # TODO: using ARGV temporarily. I plan to create interface class of command parser and use it.
+        drb_uri = ARGV[-1]
+        begin
+          SocketManagerWin::Client.new(drb_uri)
+        rescue
+          ServerEngine.dump_uncaught_error($!)
+        end
+      else
+        # TODO: using ARGV temporarily. I plan to create interface class of command parser and use it.
+        uds_drb = ARGV[-1]
+        unix_socket_client = UNIXSocket.for_fd(uds_drb.split('#').first.to_i)
+        drb_uri = uds_drb.split('#').last
+        begin
+          SocketManager::Client.new(unix_socket_client, drb_uri)
+        rescue
+          ServerEngine.dump_uncaught_error($!)
+        end
+      end
     end
 
     class Client
