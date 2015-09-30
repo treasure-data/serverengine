@@ -48,13 +48,20 @@ module ServerEngine
     private
 
     def create_socket_manager
-      sm = SocketManager::Server.new
-      DRb.start_service(nil, sm)
-      drb_uri = DRb.uri
-      unix_socket_client = sm.new_unix_socket
-      unix_socket_client.fcntl(Fcntl::F_SETFD, 0)
-      @pm.drb = drb_uri
-      @pm.uds = unix_socket_client
+      if $platformwin
+        sm = SocketManagerWin::Server.new
+        DRb.start_service(nil, sm)
+        drb_uri = DRb.uri
+        @pm.drb = drb_uri
+      else
+        sm = SocketManager::Server.new
+        DRb.start_service(nil, sm)
+        drb_uri = DRb.uri
+        unix_socket_client = sm.new_unix_socket
+        unix_socket_client.fcntl(Fcntl::F_SETFD, 0)
+        @pm.drb = drb_uri
+        @pm.uds = unix_socket_client
+      end
     end
 
     def reload_config
