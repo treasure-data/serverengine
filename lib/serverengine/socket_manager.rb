@@ -85,8 +85,8 @@ module ServerEngine
             sock = TCPServer.new(bind, port)
             sock.setsockopt(:SOCKET, :REUSEADDR, true)
             sock.listen(Socket::SOMAXCONN)
-          rescue
-            "failed to listen to #{bind}:#{port}"
+          rescue => e
+            warn "failed to create TCP socket for #{bind}:#{port}: #{e}"
           end
           sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
@@ -110,8 +110,8 @@ module ServerEngine
               sock = UDPSocket.new(Socket::AF_INET6)
             end
             sock.bind(bind, port)
-          rescue
-            "failed to create udp on #{bind}:#{port}"
+          rescue => e
+            warn "failed to create UDP socket for #{bind}:#{port}: #{e}"
           end
           sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
