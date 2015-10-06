@@ -91,7 +91,6 @@ module ServerEngine
           sock = nil
           begin
             sock = TCPServer.new(bind, port)
-            sock.setsockopt(:SOCKET, :REUSEADDR, true)
             sock.listen(Socket::SOMAXCONN)
           rescue => e
             warn "failed to create TCP socket for #{bind}:#{port}: #{e}"
