@@ -32,32 +32,31 @@ module ServerEngine
       def get_tcp(bind, port)
         sm_server = DRb::DRbObject.new_with_uri(@drb_uri)
         clientd_pid = Process.pid
-        proto_pack = sm_server.get_tcp_proto(clientd_pid.to_s, bind, port)
-        proto_map = MessagePack.unpack(proto_pack)
+        proto_map = sm_server.get_tcp_proto(clientd_pid.to_s, bind, port)
         proto = WSAPROTOCOL_INFO.new
 
-        proto[:dwServiceFlags1] =  proto_map["dwServiceFlags1"].to_i
-        proto[:dwServiceFlags2] =  proto_map["dwServiceFlags2"].to_i
-        proto[:dwServiceFlags3] =  proto_map["dwServiceFlags3"].to_i
-        proto[:dwServiceFlags4] =  proto_map["dwServiceFlags4"].to_i
-        proto[:dwProviderFlags] =  proto_map["dwProviderFlags"].to_i
+        proto[:dwServiceFlags1] =  proto_map[:dwServiceFlags1]
+        proto[:dwServiceFlags2] =  proto_map[:dwServiceFlags2]
+        proto[:dwServiceFlags3] =  proto_map[:dwServiceFlags3]
+        proto[:dwServiceFlags4] =  proto_map[:dwServiceFlags4]
+        proto[:dwProviderFlags] =  proto_map[:dwProviderFlags]
 
-        proto[:ProviderID][:Data1] =  proto_map["guid_data1"].to_i
-        proto[:ProviderID][:Data2] =  proto_map["guid_data2"].to_i
-        proto[:ProviderID][:Data3] =  proto_map["guid_data3"].to_i
+        proto[:ProviderID][:Data1] =  proto_map[:guid_data1]
+        proto[:ProviderID][:Data2] =  proto_map[:guid_data2]
+        proto[:ProviderID][:Data3] =  proto_map[:guid_data3]
 
-        proto[:dwCatalogEntryId] =  proto_map["dwCatalogEntryId"].to_i
-        proto[:iVersion] =  proto_map["iVersion"].to_i
-        proto[:iAddressFamily] =  proto_map["iAddressFamily"].to_i
-        proto[:iMaxSockAddr] =  proto_map["iMaxSockAddr"].to_i
-        proto[:iMinSockAddr] =  proto_map["iMinSockAddr"].to_i
-        proto[:iSocketType] =  proto_map["iSocketType"].to_i
-        proto[:iProtocol] =  proto_map["iProtocol"].to_i
-        proto[:iProtocolMaxOffset] =  proto_map["iProtocolMaxOffset"].to_i
-        proto[:iNetworkByteOrder] =  proto_map["iNetworkByteOrder"].to_i
-        proto[:iSecurityScheme] =  proto_map["iSecurityScheme"].to_i
-        proto[:dwMessageSize] =  proto_map["dwMessageSize"].to_i
-        proto[:dwProviderReserved] =  proto_map["dwProviderReserved"].to_i
+        proto[:dwCatalogEntryId] =  proto_map[:dwCatalogEntryId]
+        proto[:iVersion] =  proto_map[:iVersion]
+        proto[:iAddressFamily] =  proto_map[:iAddressFamily]
+        proto[:iMaxSockAddr] =  proto_map[:iMaxSockAddr]
+        proto[:iMinSockAddr] =  proto_map[:iMinSockAddr]
+        proto[:iSocketType] =  proto_map[:iSocketType]
+        proto[:iProtocol] =  proto_map[:iProtocol]
+        proto[:iProtocolMaxOffset] =  proto_map[:iProtocolMaxOffset]
+        proto[:iNetworkByteOrder] =  proto_map[:iNetworkByteOrder]
+        proto[:iSecurityScheme] =  proto_map[:iSecurityScheme]
+        proto[:dwMessageSize] =  proto_map[:dwMessageSize]
+        proto[:dwProviderReserved] =  proto_map[:dwProviderReserved]
 
         WSASocketA(AF_INET,SOCK_STREAM,0,proto,0,WSA_FLAG_OVERLAPPED)
       end
@@ -73,38 +72,30 @@ module ServerEngine
         proto = WSAPROTOCOL_INFO.new
         WSADuplicateSocketA(sock, child_pid, proto)
 
-        # guid_data4 = []
-        # for e in 0..7
-        #   guid_data4.push proto[:ProviderID][:Data4][e]
-        # end
+        {
+          :dwServiceFlags1 => proto[:dwServiceFlags1],
+          :dwServiceFlags2 =>  proto[:dwServiceFlags2],
+          :dwServiceFlags3 =>  proto[:dwServiceFlags3],
+          :dwServiceFlags4 =>  proto[:dwServiceFlags4],
+          :dwProviderFlags =>  proto[:dwProviderFlags],
 
-        proto_map = {
-            :dwServiceFlags1 => proto[:dwServiceFlags1].to_s,
-            :dwServiceFlags2 =>  proto[:dwServiceFlags2].to_s,
-            :dwServiceFlags3 =>  proto[:dwServiceFlags3].to_s,
-            :dwServiceFlags4 =>  proto[:dwServiceFlags4].to_s,
-            :dwProviderFlags =>  proto[:dwProviderFlags].to_s,
+          :guid_data1 => proto[:ProviderID][:Data1],
+          :guid_data2 => proto[:ProviderID][:Data2],
+          :guid_data3 => proto[:ProviderID][:Data3],
 
-            :guid_data1 => proto[:ProviderID][:Data1].to_s,
-            :guid_data2 => proto[:ProviderID][:Data2].to_s,
-            :guid_data3 => proto[:ProviderID][:Data3].to_s,
-            # :guid_data4 => guid_data4,
-
-            :dwCatalogEntryId =>  proto[:dwCatalogEntryId].to_s,
-            :iVersion =>  proto[:iVersion].to_s,
-            :iAddressFamily =>  proto[:iAddressFamily].to_s,
-            :iMaxSockAddr =>  proto[:iMaxSockAddr].to_s,
-            :iMinSockAddr =>  proto[:iMinSockAddr].to_s,
-            :iSocketType =>  proto[:iSocketType].to_s,
-            :iProtocol =>  proto[:iProtocol].to_s,
-            :iProtocolMaxOffset =>  proto[:iProtocolMaxOffset].to_s,
-            :iNetworkByteOrder =>  proto[:iNetworkByteOrder].to_s,
-            :iSecurityScheme =>  proto[:iSecurityScheme].to_s,
-            :dwMessageSize =>  proto[:dwMessageSize].to_s,
-            :dwProviderReserved =>  proto[:dwProviderReserved].to_s
+          :dwCatalogEntryId =>  proto[:dwCatalogEntryId],
+          :iVersion =>  proto[:iVersion],
+          :iAddressFamily =>  proto[:iAddressFamily],
+          :iMaxSockAddr =>  proto[:iMaxSockAddr],
+          :iMinSockAddr =>  proto[:iMinSockAddr],
+          :iSocketType =>  proto[:iSocketType],
+          :iProtocol =>  proto[:iProtocol],
+          :iProtocolMaxOffset =>  proto[:iProtocolMaxOffset],
+          :iNetworkByteOrder =>  proto[:iNetworkByteOrder],
+          :iSecurityScheme =>  proto[:iSecurityScheme],
+          :dwMessageSize =>  proto[:dwMessageSize],
+          :dwProviderReserved =>  proto[:dwProviderReserved]
         }
-
-        MessagePack.pack(proto_map)
       end
 
       def get_sock(bind, port)
