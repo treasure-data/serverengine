@@ -147,7 +147,7 @@ module ServerEngine
 
       begin
 
-        unless $platformwin
+        unless ServerEngine.windows?
           options[[wpipe.fileno]] = wpipe
           if @enable_heartbeat
             env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
@@ -214,7 +214,7 @@ module ServerEngine
       if ready_pipes
         ready_pipes.each do |r|
           begin
-            if $platformwin
+            if ServerEngine.windows?
               r.read(1024, @read_buffer)
             else
               r.read_nonblock(1024, @read_buffer)

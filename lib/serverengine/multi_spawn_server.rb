@@ -19,7 +19,7 @@ module ServerEngine
 
   class MultiSpawnServer < MultiWorkerServer
     def initialize(worker_module, load_config_proc={}, &block)
-      if $platformwin
+      if ServerEngine.windows?
         @pm = ProcessManager.new(
           auto_tick: false,
           graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
