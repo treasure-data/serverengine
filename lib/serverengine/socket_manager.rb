@@ -96,7 +96,6 @@ module ServerEngine
           rescue => e
             warn "failed to create TCP socket for #{bind}:#{port}: #{e}"
           end
-          sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
           @tcp_socks[socks_key] = sock
           @unix_socket_server.send_io @tcp_socks[socks_key]
@@ -121,7 +120,6 @@ module ServerEngine
           rescue => e
             warn "failed to create UDP socket for #{bind}:#{port}: #{e}"
           end
-          sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
           @udp_socks[socks_key] = sock
           @unix_socket_server.send_io @udp_socks[socks_key]
