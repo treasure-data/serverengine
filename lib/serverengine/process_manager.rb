@@ -52,9 +52,9 @@ module ServerEngine
       @closed = false
       @read_buffer = ''
 
-    end
-    if @auto_tick
-      TickThread.new(self)
+      if @auto_tick
+        TickThread.new(self)
+      end
     end
 
     attr_accessor :logger
