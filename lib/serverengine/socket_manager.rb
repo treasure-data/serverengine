@@ -66,9 +66,20 @@ module ServerEngine
         @unix_socket_server = nil
       end
 
+      def close
+        @tcp_socks.each_pair {|key, lsock|
+          lsock.close
+        }
+        @udp_socks.each_pair {|key, usock|
+          usock.close
+        }
+        @unix_socket_server.close
+        @unix_socket_client.close
+      end
+
       def new_unix_socket
-        @unix_socket_server, unix_socket_client = UNIXSocket.pair
-        unix_socket_client
+        @unix_socket_server, @unix_socket_client = UNIXSocket.pair
+        @unix_socket_client
       end
 
       def socket_fd(bind, port)
