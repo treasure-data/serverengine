@@ -24,16 +24,14 @@ module ServerEngine
 
     def self.new_socket_manager
       if $platformwin
-        # TODO: using ARGV temporarily. I plan to create interface class of command parser and use it.
-        drb_uri = ARGV[-1]
+        drb_uri = ENV["SERVERENGINE_DRB"]
         begin
           SocketManagerWin::Client.new(drb_uri)
         rescue
           ServerEngine.dump_uncaught_error($!)
         end
       else
-        # TODO: using ARGV temporarily. I plan to create interface class of command parser and use it.
-        uds_drb = ARGV[-1]
+        uds_drb = ENV["SERVERENGINE_UDS_DRB"]
         unix_socket_client = UNIXSocket.for_fd(uds_drb.split('#').first.to_i)
         drb_uri = uds_drb.split('#').last
         begin
@@ -74,7 +72,6 @@ module ServerEngine
       end
 
       def socket_fd(bind, port)
-
         socks_key = bind.to_s + port.to_s
 
         if @tcp_socks.has_key?(socks_key)

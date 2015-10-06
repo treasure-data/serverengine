@@ -152,9 +152,8 @@ module ServerEngine
 
         pid = nil
         if $platformwin
-          # TODO: use option
-          spawn_command = args[0].to_s + " #{@drb} "
-          pid = Process.spawn(env, spawn_command, options)
+          ENV["SERVERENGINE_DRB"] = @drb
+          pid = Process.spawn(env, *args, options)
         else
           options[[wpipe.fileno]] = wpipe
           if @enable_heartbeat
@@ -162,9 +161,8 @@ module ServerEngine
           end
 
           options[:close_others] = false
-          # TODO: use option
-          spawn_command = args[0].to_s + " #{@uds.fileno.to_s}##{@drb} "
-          pid = Process.spawn(env, spawn_command, options)
+          ENV["SERVERENGINE_UDS_DRB"] = "#{@uds.fileno.to_s}##{@drb}"
+          pid = Process.spawn(env, *args, options)
         end
 
         m = Monitor.new(self, pid)
