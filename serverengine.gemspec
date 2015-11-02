@@ -20,6 +20,9 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = ">= 1.9.3"
 
   gem.add_dependency "sigdump", ["~> 0.2.2"]
+  if /mswin|mingw/ =~ RUBY_PLATFORM
+    gem.add_runtime_dependency("win32-pipe", ["~> 0.3.6"])
+  end
 
   gem.add_development_dependency "rake", [">= 0.9.2"]
   gem.add_development_dependency "rspec", ["~> 2.13.0"]

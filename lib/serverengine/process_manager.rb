@@ -18,12 +18,17 @@
 module ServerEngine
 
   require 'fcntl'
+  if ServerEngine.windows?
+    require 'win32/pipe'
+    include Win32
+  end
 
   class ProcessManager
     def initialize(config={})
       @monitors = []
       @rpipes = {}
       @heartbeat_time = {}
+      @heartbeat_num = 0
 
       @cloexec_mode = config[:cloexec_mode]
 
@@ -147,7 +152,14 @@ module ServerEngine
 
       begin
 
-        unless ServerEngine.windows?
+        if ServerEngine.windows?
+          @heartbeat_num += 1
+          pipe_name = "SERVERENGINE_HEARTBEAT_PIPE_" + @heartbeat_num.to_s
+          rpipe = Pipe::Server.new(pipe_name, 0, Pipe::ACCESS_DUPLEX | Pipe::FILE_FLAG_OVERLAPPED)
+          if @enable_heartbeat
+            env['SERVERENGINE_HEARTBEAT_PIPE'] = pipe_name
+          end
+        else
           options[[wpipe.fileno]] = wpipe
           if @enable_heartbeat
             env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
@@ -207,7 +219,12 @@ module ServerEngine
         return nil
       end
 
-      ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
+      if ServerEngine.windows?
+        # TODO: should use WaitForMultipleObjects?
+        ready_pipes = @rpipes.keys
+      else
+        ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
+      end
 
       time ||= Time.now
 
@@ -215,7 +232,10 @@ module ServerEngine
         ready_pipes.each do |r|
           begin
             if ServerEngine.windows?
-              r.read(1024, @read_buffer)
+              read_flag = r.read
+              if read_flag
+                @read_buffer = r.buffer
+              end
             else
               r.read_nonblock(1024, @read_buffer)
             end
