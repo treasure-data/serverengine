@@ -62,7 +62,7 @@ module ServerEngine
 
     attr_accessor :cloexec_mode
 
-    attr_accessor :drb, :uds
+    attr_accessor :drb, :uds, :sm
 
     attr_reader :graceful_kill_signal, :immediate_kill_signal
     attr_reader :auto_tick, :auto_tick_interval
@@ -152,7 +152,7 @@ module ServerEngine
 
         pid = nil
         if $platformwin
-          ENV["SERVERENGINE_DRB"] = @drb
+          env['SERVERENGINE_DRB'] = @drb
           pid = Process.spawn(env, *args, options)
         else
           options[[wpipe.fileno]] = wpipe
@@ -160,8 +160,16 @@ module ServerEngine
             env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
           end
 
+          tcp_uds = @sm.new_unix_socket
+          udp_uds = @sm.new_unix_socket
+          tcp_uds.fcntl(Fcntl::F_SETFD, 0)
+          udp_uds.fcntl(Fcntl::F_SETFD, 0)
+
           options[:close_others] = false
-          ENV["SERVERENGINE_UDS_DRB"] = "#{@uds.fileno.to_s}##{@drb}"
+          env['SERVERENGINE_DRB'] = @drb
+          env['SERVERENGINE_TCP_UDS'] = tcp_uds.fileno.to_s
+          env['SERVERENGINE_UDP_UDS'] = udp_uds.fileno.to_s
+
           pid = Process.spawn(env, *args, options)
         end
 

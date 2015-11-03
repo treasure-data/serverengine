@@ -31,11 +31,13 @@ module ServerEngine
           ServerEngine.dump_uncaught_error($!)
         end
       else
-        uds_drb = ENV["SERVERENGINE_UDS_DRB"]
-        unix_socket_client = UNIXSocket.for_fd(uds_drb.split('#').first.to_i)
-        drb_uri = uds_drb.split('#').last
+        drb_uri = ENV["SERVERENGINE_DRB"]
+        tcp_uds_fd = ENV["SERVERENGINE_TCP_UDS"]
+        udp_uds_fd = ENV["SERVERENGINE_UDP_UDS"]
+        tcp_uds = UNIXSocket.for_fd(tcp_uds_fd.to_i)
+        udp_uds = UNIXSocket.for_fd(udp_uds_fd.to_i)
         begin
-          SocketManager::Client.new(unix_socket_client, drb_uri)
+          SocketManager::Client.new(tcp_uds, udp_uds, drb_uri)
         rescue
           ServerEngine.dump_uncaught_error($!)
         end
@@ -43,19 +45,20 @@ module ServerEngine
     end
 
     class Client
-      def initialize(unix_socket_client, drb_uri)
-        @unix_socket_client = unix_socket_client
+      def initialize(tcp_uds, udp_uds, drb_uri)
+        @tcp_uds = tcp_uds
+        @udp_uds = udp_uds
         @sm_server = DRb::DRbObject.new_with_uri(drb_uri)
       end
 
       def get_udp(bind, port)
-        @sm_server.udp_socket_fd(bind, port)
-        @unix_socket_client.recv_io
+        @sm_server.udp_socket_fd(bind, port, @udp_uds.fileno.to_s)
+        @udp_uds.recv_io
       end
 
       def get_tcp(bind, port)
-        @sm_server.socket_fd(bind, port)
-        @unix_socket_client.recv_io
+        @sm_server.socket_fd(bind, port, @tcp_uds.fileno.to_s)
+        @tcp_uds.recv_io
       end
     end
 
@@ -63,7 +66,7 @@ module ServerEngine
       def initialize
         @tcp_socks = {}
         @udp_socks = {}
-        @unix_socket_server = nil
+        @unix_socket_server = {}
       end
 
       def close
@@ -73,20 +76,24 @@ module ServerEngine
         @udp_socks.each_pair {|key, usock|
           usock.close
         }
-        @unix_socket_server.close
-        @unix_socket_client.close
+        @unix_socket_server.each_pair {|uds_client, uds_server|
+          UNIXSocket.for_fd(uds_client.to_i).close
+          uds_server.close
+        }
       end
 
       def new_unix_socket
-        @unix_socket_server, @unix_socket_client = UNIXSocket.pair
-        @unix_socket_client
+        unix_socket_server, unix_socket_client = UNIXSocket.pair
+        @unix_socket_server[unix_socket_client.fileno.to_s] = unix_socket_server
+        unix_socket_client
       end
 
-      def socket_fd(bind, port)
+      def socket_fd(bind, port, us)
+
         socks_key = bind.to_s + port.to_s
 
         if @tcp_socks.has_key?(socks_key)
-          @unix_socket_server.send_io @tcp_socks[socks_key]
+          @unix_socket_server[us].send_io @tcp_socks[socks_key]
         else
           sock = nil
           begin
@@ -97,16 +104,16 @@ module ServerEngine
           end
 
           @tcp_socks[socks_key] = sock
-          @unix_socket_server.send_io @tcp_socks[socks_key]
+          @unix_socket_server[us].send_io @tcp_socks[socks_key]
         end
       end
 
-      def udp_socket_fd(bind, port)
+      def udp_socket_fd(bind, port, us)
 
         socks_key = bind.to_s + port.to_s
 
         if @udp_socks.has_key?(socks_key)
-          @unix_socket_server.send_io @udp_socks[socks_key]
+          @unix_socket_server[us].send_io @udp_socks[socks_key]
         else
           sock = nil
           begin
@@ -121,7 +128,8 @@ module ServerEngine
           end
 
           @udp_socks[socks_key] = sock
-          @unix_socket_server.send_io @udp_socks[socks_key]
+
+          @unix_socket_server[us].send_io @udp_socks[socks_key]
         end
       end
 
