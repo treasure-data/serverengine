@@ -52,12 +52,12 @@ module ServerEngine
       end
 
       def get_udp(bind, port)
-        @sm_server.udp_socket_fd(bind, port, @udp_uds.fileno.to_s)
+        @sm_server.udp_sock_fd(bind, port, @udp_uds.fileno.to_s)
         @udp_uds.recv_io
       end
 
       def get_tcp(bind, port)
-        @sm_server.socket_fd(bind, port, @tcp_uds.fileno.to_s)
+        @sm_server.tcp_sock_fd(bind, port, @tcp_uds.fileno.to_s)
         @tcp_uds.recv_io
       end
     end
@@ -66,7 +66,7 @@ module ServerEngine
       def initialize
         @tcp_socks = {}
         @udp_socks = {}
-        @unix_socket_server = {}
+        @unix_sock_server = {}
       end
 
       def close
@@ -76,24 +76,24 @@ module ServerEngine
         @udp_socks.each_pair {|key, usock|
           usock.close
         }
-        @unix_socket_server.each_pair {|uds_client, uds_server|
+        @unix_sock_server.each_pair {|uds_client, uds_server|
           UNIXSocket.for_fd(uds_client.to_i).close
           uds_server.close
         }
       end
 
       def new_unix_socket
-        unix_socket_server, unix_socket_client = UNIXSocket.pair
-        @unix_socket_server[unix_socket_client.fileno.to_s] = unix_socket_server
-        unix_socket_client
+        unix_sock_server, unix_sock_client = UNIXSocket.pair
+        @unix_sock_server[unix_sock_client.fileno.to_s] = unix_sock_server
+        unix_sock_client
       end
 
-      def socket_fd(bind, port, us)
+      def tcp_sock_fd(bind, port, us)
 
         socks_key = bind.to_s + port.to_s
 
         if @tcp_socks.has_key?(socks_key)
-          @unix_socket_server[us].send_io @tcp_socks[socks_key]
+          @unix_sock_server[us].send_io @tcp_socks[socks_key]
         else
           sock = nil
           begin
@@ -104,16 +104,16 @@ module ServerEngine
           end
 
           @tcp_socks[socks_key] = sock
-          @unix_socket_server[us].send_io @tcp_socks[socks_key]
+          @unix_sock_server[us].send_io @tcp_socks[socks_key]
         end
       end
 
-      def udp_socket_fd(bind, port, us)
+      def udp_sock_fd(bind, port, us)
 
         socks_key = bind.to_s + port.to_s
 
         if @udp_socks.has_key?(socks_key)
-          @unix_socket_server[us].send_io @udp_socks[socks_key]
+          @unix_sock_server[us].send_io @udp_socks[socks_key]
         else
           sock = nil
           begin
@@ -129,7 +129,7 @@ module ServerEngine
 
           @udp_socks[socks_key] = sock
 
-          @unix_socket_server[us].send_io @udp_socks[socks_key]
+          @unix_sock_server[us].send_io @udp_socks[socks_key]
         end
       end
 
