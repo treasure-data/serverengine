@@ -132,6 +132,10 @@ module ServerEngine
     end
 
     def spawn(*args)
+
+      # if spawn continuously without any interval, each processes may cause race condition.
+      sleep 0.5
+
       if args.first.is_a?(Hash)
         env = args.shift.dup
       else
