@@ -60,6 +60,7 @@ module ServerEngine
     # PROTOCOL
     MAX_PROTOCOL_CHAIN = 7
     WSAPROTOCOL_LENGTH = 256
+    GUID_DATA4_LENGTH = 8
 
     typedef :ulong, :dword
     typedef :uintptr_t, :socket

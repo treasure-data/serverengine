@@ -44,8 +44,15 @@ module ServerEngine
         proto[:ProviderID][:Data1] =  proto_map[:guid_data1]
         proto[:ProviderID][:Data2] =  proto_map[:guid_data2]
         proto[:ProviderID][:Data3] =  proto_map[:guid_data3]
+        for i in 0..(GUID_DATA4_LENGTH-1)
+          proto[:ProviderID][:Data4][i] =  proto_map[:guid_data4][i]
+        end
 
         proto[:dwCatalogEntryId] =  proto_map[:dwCatalogEntryId]
+        proto[:ProtocolChain][:ChainLen] = proto_map[:ProtocolChain][:ChainLen]
+        for i in 0..(MAX_PROTOCOL_CHAIN-1)
+          proto[:ProtocolChain][:ChainEntries][i] = proto_map[:ProtocolChain][:ChainEntries][i]
+        end
         proto[:iVersion] =  proto_map[:iVersion]
         proto[:iAddressFamily] =  proto_map[:iAddressFamily]
         proto[:iMaxSockAddr] =  proto_map[:iMaxSockAddr]
@@ -57,6 +64,9 @@ module ServerEngine
         proto[:iSecurityScheme] =  proto_map[:iSecurityScheme]
         proto[:dwMessageSize] =  proto_map[:dwMessageSize]
         proto[:dwProviderReserved] =  proto_map[:dwProviderReserved]
+        for i in 0..(WSAPROTOCOL_LENGTH-1)
+          proto[:szProtocol][i] = proto_map[:szProtocol][i]
+        end
 
         WSASocketA(AF_INET,SOCK_STREAM,0,proto,0,WSA_FLAG_OVERLAPPED)
       end
@@ -76,8 +86,15 @@ module ServerEngine
         proto[:ProviderID][:Data1] =  proto_map[:guid_data1]
         proto[:ProviderID][:Data2] =  proto_map[:guid_data2]
         proto[:ProviderID][:Data3] =  proto_map[:guid_data3]
+        for i in 0..(GUID_DATA4_LENGTH-1)
+          proto[:ProviderID][:Data4][i] =  proto_map[:guid_data4][i]
+        end
 
         proto[:dwCatalogEntryId] =  proto_map[:dwCatalogEntryId]
+        proto[:ProtocolChain][:ChainLen] = proto_map[:ProtocolChain][:ChainLen]
+        for i in 0..(MAX_PROTOCOL_CHAIN-1)
+          proto[:ProtocolChain][:ChainEntries][i] = proto_map[:ProtocolChain][:ChainEntries][i]
+        end
         proto[:iVersion] =  proto_map[:iVersion]
         proto[:iAddressFamily] =  proto_map[:iAddressFamily]
         proto[:iMaxSockAddr] =  proto_map[:iMaxSockAddr]
@@ -89,6 +106,9 @@ module ServerEngine
         proto[:iSecurityScheme] =  proto_map[:iSecurityScheme]
         proto[:dwMessageSize] =  proto_map[:dwMessageSize]
         proto[:dwProviderReserved] =  proto_map[:dwProviderReserved]
+        for i in 0..(WSAPROTOCOL_LENGTH-1)
+          proto[:szProtocol][i] = proto_map[:szProtocol][i]
+        end
 
         WSASocketA(AF_INET,SOCK_DGRAM,0,proto,0,WSA_FLAG_OVERLAPPED)
       end
@@ -115,8 +135,10 @@ module ServerEngine
           :guid_data1 => proto[:ProviderID][:Data1],
           :guid_data2 => proto[:ProviderID][:Data2],
           :guid_data3 => proto[:ProviderID][:Data3],
+          :guid_data4 => proto[:ProviderID][:Data4],
 
           :dwCatalogEntryId =>  proto[:dwCatalogEntryId],
+          :ProtocolChain =>  proto[:ProtocolChain],
           :iVersion =>  proto[:iVersion],
           :iAddressFamily =>  proto[:iAddressFamily],
           :iMaxSockAddr =>  proto[:iMaxSockAddr],
@@ -127,7 +149,8 @@ module ServerEngine
           :iNetworkByteOrder =>  proto[:iNetworkByteOrder],
           :iSecurityScheme =>  proto[:iSecurityScheme],
           :dwMessageSize =>  proto[:dwMessageSize],
-          :dwProviderReserved =>  proto[:dwProviderReserved]
+          :dwProviderReserved =>  proto[:dwProviderReserved],
+          :szProtocol =>  proto[:szProtocol],
         }
       end
 
@@ -146,8 +169,10 @@ module ServerEngine
           :guid_data1 => proto[:ProviderID][:Data1],
           :guid_data2 => proto[:ProviderID][:Data2],
           :guid_data3 => proto[:ProviderID][:Data3],
+          :guid_data4 => proto[:ProviderID][:Data4],
 
           :dwCatalogEntryId =>  proto[:dwCatalogEntryId],
+          :ProtocolChain =>  proto[:ProtocolChain],
           :iVersion =>  proto[:iVersion],
           :iAddressFamily =>  proto[:iAddressFamily],
           :iMaxSockAddr =>  proto[:iMaxSockAddr],
@@ -158,7 +183,8 @@ module ServerEngine
           :iNetworkByteOrder =>  proto[:iNetworkByteOrder],
           :iSecurityScheme =>  proto[:iSecurityScheme],
           :dwMessageSize =>  proto[:dwMessageSize],
-          :dwProviderReserved =>  proto[:dwProviderReserved]
+          :dwProviderReserved =>  proto[:dwProviderReserved],
+          :szProtocol =>  proto[:szProtocol],
         }
       end
 
