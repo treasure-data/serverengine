@@ -32,9 +32,11 @@ module ServerEngine
     end
 
     def run
+      create_socket_manager
       super
     ensure
       @pm.close
+      @sm.close
     end
 
     def logger=(logger)
@@ -43,6 +45,21 @@ module ServerEngine
     end
 
     private
+
+    def create_socket_manager
+      if $platformwin
+        @sm = SocketManagerWin::Server.new
+        DRb.start_service(nil, @sm)
+        drb_uri = DRb.uri
+        @pm.drb = drb_uri
+      else
+        @sm = SocketManager::Server.new
+        DRb.start_service(nil, @sm)
+        drb_uri = DRb.uri
+        @pm.drb = drb_uri
+        @pm.sm = @sm
+      end
+    end
 
     def reload_config
       super

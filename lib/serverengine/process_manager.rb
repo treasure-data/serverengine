@@ -18,6 +18,7 @@
 module ServerEngine
 
   require 'fcntl'
+  require 'drb/drb'
 
   class ProcessManager
     def initialize(config={})
@@ -60,6 +61,8 @@ module ServerEngine
     attr_accessor :logger
 
     attr_accessor :cloexec_mode
+
+    attr_accessor :drb, :uds, :sm
 
     attr_reader :graceful_kill_signal, :immediate_kill_signal
     attr_reader :auto_tick, :auto_tick_interval
@@ -129,6 +132,10 @@ module ServerEngine
     end
 
     def spawn(*args)
+
+      # if spawn continuously without any interval, each processes may cause race condition.
+      sleep 0.5
+
       if args.first.is_a?(Hash)
         env = args.shift.dup
       else
@@ -146,12 +153,29 @@ module ServerEngine
       rpipe, wpipe = new_pipe_pair
 
       begin
-        options[[wpipe.fileno]] = wpipe
-        if @enable_heartbeat
-          env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
-        end
 
-        pid = Process.spawn(env, *args, options)
+        pid = nil
+        if $platformwin
+          env['SERVERENGINE_DRB'] = @drb
+          pid = Process.spawn(env, *args, options)
+        else
+          options[[wpipe.fileno]] = wpipe
+          if @enable_heartbeat
+            env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+          end
+
+          tcp_uds = @sm.new_unix_socket
+          udp_uds = @sm.new_unix_socket
+          tcp_uds.fcntl(Fcntl::F_SETFD, 0)
+          udp_uds.fcntl(Fcntl::F_SETFD, 0)
+
+          options[:close_others] = false
+          env['SERVERENGINE_DRB'] = @drb
+          env['SERVERENGINE_TCP_UDS'] = tcp_uds.fileno.to_s
+          env['SERVERENGINE_UDP_UDS'] = udp_uds.fileno.to_s
+
+          pid = Process.spawn(env, *args, options)
+        end
 
         m = Monitor.new(self, pid)
 
