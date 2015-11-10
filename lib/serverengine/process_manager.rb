@@ -27,7 +27,6 @@ module ServerEngine
       @monitors = []
       @rpipes = {}
       @heartbeat_time = {}
-      @heartbeat_num = 0
 
       @cloexec_mode = config[:cloexec_mode]
 
@@ -152,8 +151,7 @@ module ServerEngine
       begin
 
         if ServerEngine.windows?
-          @heartbeat_num += 1
-          pipe_name = "SERVERENGINE_HEARTBEAT_PIPE_" + @heartbeat_num.to_s
+          pipe_name = "SERVERENGINE_HEARTBEAT_PIPE_%016X" % Random.new.rand(2**128)
           rpipe = Win32::Pipe::Server.new(pipe_name, 0, Win32::Pipe::ACCESS_DUPLEX | Win32::Pipe::FILE_FLAG_OVERLAPPED)
           if @enable_heartbeat
             env['SERVERENGINE_HEARTBEAT_PIPE'] = pipe_name
