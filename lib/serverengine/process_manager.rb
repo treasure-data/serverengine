@@ -20,7 +20,6 @@ module ServerEngine
   require 'fcntl'
   if ServerEngine.windows?
     require 'win32/pipe'
-    include Win32
   end
 
   class ProcessManager
@@ -155,7 +154,7 @@ module ServerEngine
         if ServerEngine.windows?
           @heartbeat_num += 1
           pipe_name = "SERVERENGINE_HEARTBEAT_PIPE_" + @heartbeat_num.to_s
-          rpipe = Pipe::Server.new(pipe_name, 0, Pipe::ACCESS_DUPLEX | Pipe::FILE_FLAG_OVERLAPPED)
+          rpipe = Win32::Pipe::Server.new(pipe_name, 0, Win32::Pipe::ACCESS_DUPLEX | Win32::Pipe::FILE_FLAG_OVERLAPPED)
           if @enable_heartbeat
             env['SERVERENGINE_HEARTBEAT_PIPE'] = pipe_name
           end
