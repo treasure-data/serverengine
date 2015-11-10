@@ -18,6 +18,9 @@
 module ServerEngine
 
   require 'fcntl'
+  if ServerEngine.windows?
+    require 'win32/pipe'
+  end
 
   class ProcessManager
     def initialize(config={})
@@ -146,9 +149,18 @@ module ServerEngine
       rpipe, wpipe = new_pipe_pair
 
       begin
-        options[[wpipe.fileno]] = wpipe
-        if @enable_heartbeat
-          env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+
+        if ServerEngine.windows?
+          pipe_name = "SERVERENGINE_HEARTBEAT_PIPE_%016X" % Random.new.rand(2**128)
+          rpipe = Win32::Pipe::Server.new(pipe_name, 0, Win32::Pipe::ACCESS_DUPLEX | Win32::Pipe::FILE_FLAG_OVERLAPPED)
+          if @enable_heartbeat
+            env['SERVERENGINE_HEARTBEAT_PIPE'] = pipe_name
+          end
+        else
+          options[[wpipe.fileno]] = wpipe
+          if @enable_heartbeat
+            env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+          end
         end
 
         pid = Process.spawn(env, *args, options)
@@ -204,14 +216,26 @@ module ServerEngine
         return nil
       end
 
-      ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
+      if ServerEngine.windows?
+        # TODO: should use WaitForMultipleObjects?
+        ready_pipes = @rpipes.keys
+      else
+        ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
+      end
 
       time ||= Time.now
 
       if ready_pipes
         ready_pipes.each do |r|
           begin
-            r.read_nonblock(1024, @read_buffer)
+            if ServerEngine.windows?
+              read_flag = r.read
+              if read_flag
+                @read_buffer = r.buffer
+              end
+            else
+              r.read_nonblock(1024, @read_buffer)
+            end
           rescue Errno::EAGAIN, Errno::EINTR
             next
           rescue #EOFError
