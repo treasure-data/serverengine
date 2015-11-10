@@ -23,6 +23,7 @@ module ServerEngine
         @pm = ProcessManager.new(
           auto_tick: false,
           graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
+          immediate_kill_signal: false,
           enable_heartbeat: false,
         )
       else
