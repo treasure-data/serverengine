@@ -25,6 +25,8 @@ module ServerEngine
     module ClientModule
       private
 
+      include Socket::Constants
+
       def connect_peer(path)
         return Win32::Pipe::Client.new(@pipe_name)
       end
@@ -32,13 +34,13 @@ module ServerEngine
       def recv_tcp(peer, sent)
         # TODO call rb_w32_wrap_io_handle with TCPServer so that clients can use TCPServer API
         proto = SocketManagerWin.load_struct(WinSock::WSAPROTOCOL_INFO, sent)
-        return WinSock::WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, 0, proto, 0, WinSock::WSA_FLAG_OVERLAPPED)
+        return WinSock.WSASocketA(AF_INET, SOCK_STREAM, 0, proto, 0, WinSock::WSA_FLAG_OVERLAPPED)
       end
 
       def recv_udp(peer, sent)
         # TODO call rb_w32_wrap_io_handle with UDPSocket so that clients can use UDPSocket API
         proto = SocketManagerWin.load_struct(WinSock::WSAPROTOCOL_INFO, sent)
-        return WinSock::WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, 0, proto, 0, WinSock::WSA_FLAG_OVERLAPPED)
+        return WinSock.WSASocketA(AF_INET, SOCK_DGRAM, 0, proto, 0, WinSock::WSA_FLAG_OVERLAPPED)
       end
     end
 
@@ -48,12 +50,12 @@ module ServerEngine
       def listen_tcp_new(bind, port)
         # TODO IPv6 is not supported
 
-        sock = WinSock::WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, Socket::IPPROTO_TCP, nil, 0, WinSock::WSA_FLAG_OVERLAPPED)
+        sock = WinSock.WSASocketA(AF_INET, SOCK_STREAM, IPPROTO_TCP, nil, 0, WinSock::WSA_FLAG_OVERLAPPED)
         # TODO call rb_w32_wrap_io_handle so that sock is closed by SocketManager::Server#close or GC
 
         sock_addr = pack_sockaddr(bind_ip, port)
-        WinSock::bind(sock, listen_addr, listen_addr.size)
-        WinSock::listen(sock, Socket::SOMAXCONN)
+        WinSock.bind(sock, listen_addr, listen_addr.size)
+        WinSock.listen(sock, SOMAXCONN)
 
         return sock
       end
@@ -61,11 +63,11 @@ module ServerEngine
       def listen_udp_new(bind_ip, port)
         # TODO IPv6 is not supported
 
-        sock = WinSock::WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, WinSock::WSA_FLAG_OVERLAPPED)
+        sock = WinSock.WSASocketA(AF_INET, SOCK_DGRAM, IPPROTO_UDP, nil, 0, WinSock::WSA_FLAG_OVERLAPPED)
         # TODO call rb_w32_wrap_io_handle so that sock is closed by SocketManager::Server#close or GC
 
         sock_addr = pack_sockaddr(bind_ip, port)
-        WinSock::bind(sock, sock_addr, sock_addr.size)
+        WinSock.bind(sock, sock_addr, sock_addr.size)
 
         return sock
       end
@@ -75,7 +77,7 @@ module ServerEngine
         sock_addr = WinSock::SockaddrIn.new
         in_addr = WinSock::InAddr.new
         in_addr[:s_addr] = bind_ip.to_i
-        sock_addr[:sin_family] = Socket::AF_INET
+        sock_addr[:sin_family] = AF_INET
         sock_addr[:sin_port] = htons(port)
         sock_addr[:sin_addr] = in_addr
         return sock_addr
@@ -135,17 +137,17 @@ module ServerEngine
         case method
         when :listen_tcp
           sock = listen_tcp(bind, port)
-          type = Socket::SOCK_STREAM
+          type = SOCK_STREAM
         when :listen_udp
-          sock = listen_tcp(bind, port)
-          type = Socket::SOCK_DGRAM
+          sock = listen_udp(bind, port)
+          type = SOCK_DGRAM
         else
           raise ArgumentError, "Unknown method: #{method.inspect}"
         end
 
         proto = WinSock::WSAPROTOCOL_INFO.new
-        unless WinSock::WSADuplicateSocketA(sock, pid, proto) == 0
-          raise "WSADuplicateSocketA faild (0x%x)" % WinSock::WSAGetLastError()
+        unless WinSock.WSADuplicateSocketA(sock, pid, proto) == 0
+          raise "WSADuplicateSocketA faild (0x%x)" % WinSock.WSAGetLastError
         end
 
         SocketManager.send_peer(peer, SocketManagerWin.dump_struct(proto))
