@@ -29,13 +29,15 @@ module ServerEngine
         return Win32::Pipe::Client.new(@pipe_name)
       end
 
-      def recv_tcp(peer, proto)
+      def recv_tcp(peer, sent)
         # TODO call rb_w32_wrap_io_handle with TCPServer so that clients can use TCPServer API
+        proto = SocketManagerWin.load_struct(WinSock::WSAPROTOCOL_INFO, sent)
         return WinSock::WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, 0, proto, 0, WinSock::WSA_FLAG_OVERLAPPED)
       end
 
-      def recv_udp(peer, proto)
+      def recv_udp(peer, sent)
         # TODO call rb_w32_wrap_io_handle with UDPSocket so that clients can use UDPSocket API
+        proto = SocketManagerWin.load_struct(WinSock::WSAPROTOCOL_INFO, sent)
         return WinSock::WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, 0, proto, 0, WinSock::WSA_FLAG_OVERLAPPED)
       end
     end
@@ -127,8 +129,18 @@ module ServerEngine
           raise "WSADuplicateSocketA faild (0x%x)" % WinSock::WSAGetLastError()
         end
 
-        SocketManager.send_peer(peer, proto)
+        SocketManager.send_peer(peer, SocketManagerWin.dump_struct(proto))
       end
+    end
+
+    def self.dump_struct(proto)
+      proto.pointer.get_bytes(0, proto.size)
+    end
+
+    def self.load_struct(struct, data)
+      m = FFI::MemoryPointer.new(:char, struct.size)
+      m.put_bytes(0, data)
+      struct.new(m)
     end
 
   end
