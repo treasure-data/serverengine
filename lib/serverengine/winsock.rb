@@ -15,26 +15,31 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-
-require 'ffi'
-
 module ServerEngine
   module WinSock
+
+    require 'ffi'
     extend FFI::Library
 
-    # Flags
-    WSA_FLAG_OVERLAPPED = 0x01
-    WSA_FLAG_MULTIPOINT_C_ROOT = 0x02
-    WSA_FLAG_MULTIPOINT_C_LEAF = 0x04
-    WSA_FLAG_MULTIPOINT_D_ROOT = 0x08
-    WSA_FLAG_MULTIPOINT_D_LEAF = 0x10
-    WSA_FLAG_ACCESS_SYSTEM_SECURITY = 0x40
-    WSA_FLAG_NO_HANDLE_INHERIT = 0x80
+    module Constants
+      include Socket::Constants
 
-    # PROTOCOL
-    MAX_PROTOCOL_CHAIN = 7
-    WSAPROTOCOL_LENGTH = 256
-    GUID_DATA4_LENGTH = 8
+      # Flags
+      WSA_FLAG_OVERLAPPED = 0x01
+      WSA_FLAG_MULTIPOINT_C_ROOT = 0x02
+      WSA_FLAG_MULTIPOINT_C_LEAF = 0x04
+      WSA_FLAG_MULTIPOINT_D_ROOT = 0x08
+      WSA_FLAG_MULTIPOINT_D_LEAF = 0x10
+      WSA_FLAG_ACCESS_SYSTEM_SECURITY = 0x40
+      WSA_FLAG_NO_HANDLE_INHERIT = 0x80
+
+      # PROTOCOL
+      MAX_PROTOCOL_CHAIN = 7
+      WSAPROTOCOL_LENGTH = 256
+      GUID_DATA4_LENGTH = 8
+    end
+
+    include Constants
 
     typedef :ulong, :dword
     typedef :uintptr_t, :socket
