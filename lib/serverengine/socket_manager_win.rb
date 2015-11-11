@@ -86,21 +86,35 @@ module ServerEngine
       end
 
       def start_server(path)
-        @running = true
+        @pipe = Win32::Pipe::Server.new(path)
+        @pipe_lock = Mutex.new
 
         @thread = Thread.new do
+          @pipe_lock.lock; locked = true
+
           begin
-            pipe = nil
-            while @running
-              pipe ||= Win32::Pipe::Server.new(path, Win32::Pipe::DEFAULT_PIPE_MODE, Win32::Pipe::DEFAULT_OPEN_MODE | Win32::Pipe::OVERLAPPED)
-              pipe.wait(1)
-              if pipe.connect
+            while true
+              pipe = @pipe
+              @pipe_lock.unlock; locked = false
+              pipe.connect  # here expects that pipe.connect returns when pipe.close is called
+              @pipe_lock.lock; locked = true
+
+              if @pipe
                 Thread.new(pipe, &method(:process_peer))  # process_peer calls send_socket
-                pipe = nil
+                @pipe = Win32::Pipe::Server.new(path)
+              else
+                # @pipe is closed
+                break
               end
             end
+
           rescue => e
-            ServerEngine.dump_uncaught_error(e)
+            if @pipe
+              ServerEngine.dump_uncaught_error(e)
+            end
+
+          ensure
+            @pipe_lock.unlock if locked
           end
         end
 
@@ -108,7 +122,12 @@ module ServerEngine
       end
 
       def stop_server
-        @running = false
+        @pipe_lock.synchronize do
+          if @pipe
+            @pipe.close
+            @pipe = nil
+          end
+        end
         @thread.join
       end
 
