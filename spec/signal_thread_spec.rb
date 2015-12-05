@@ -22,13 +22,18 @@ describe ServerEngine::SignalThread do
   end
 
   it 'SIG_IGN' do
-    t = SignalThread.new do |st|
-      st.trap('QUIT', 'SIG_IGN')
+    # IGNORE signal handler has possible race condition in Ruby 2.1
+    # https://bugs.ruby-lang.org/issues/9835
+    # That's why ignore this test in Ruby2.1
+    unless /2.1/ === RUBY_VERSION
+      t = SignalThread.new do |st|
+        st.trap('QUIT', 'SIG_IGN')
+      end
+
+      Process.kill('QUIT', Process.pid)
+
+      t.stop.join
     end
-
-    Process.kill('QUIT', Process.pid)
-
-    t.stop.join
   end
 
   it 'signal in handler' do

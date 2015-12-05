@@ -1,5 +1,4 @@
 require 'bundler'
-require 'sigdump/setup'
 
 begin
   Bundler.setup(:default, :test)
@@ -12,5 +11,8 @@ end
 require 'serverengine'
 include ServerEngine
 
+unless ServerEngine.windows?
+  require 'sigdump/setup'
+end
 require 'server_worker_context'
 
