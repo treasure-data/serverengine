@@ -49,6 +49,9 @@ module ServerEngine
       @chumask = @config[:chumask]
     end
 
+    # server is available when run() is called. It is a Supervisor instance if supervisor is set to true. Otherwise a Server instance.
+    attr_reader :server
+
     module Signals
       GRACEFUL_STOP = :TERM
       IMMEDIATE_STOP = :QUIT
@@ -157,7 +160,7 @@ module ServerEngine
     private
 
     def create_server(logger)
-      @create_server_proc.call(@load_config_proc, logger)
+      @server = @create_server_proc.call(@load_config_proc, logger)
     end
   end
 end

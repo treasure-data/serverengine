@@ -9,6 +9,63 @@ describe ServerEngine::Supervisor do
     return sv, t
   end
 
+  def start_daemon(config={})
+    daemon = Daemon.new(nil, TestWorker, config)
+    t = Thread.new { daemon.main }
+
+    return daemon, t
+  end
+
+  context 'when :log=IO option is given' do
+    it 'can start' do
+      daemon, t = start_daemon(log: STDOUT)
+
+      begin
+        wait_for_fork
+      ensure
+        daemon.server.stop(true)
+        t.join
+      end
+
+      test_state(:worker_run).should == 1
+      daemon.server.logger.should be_an_instance_of(ServerEngine::DaemonLogger)
+    end
+  end
+
+  context 'when :logger option is given' do
+    it 'uses specified logger instance' do
+      logger = ServerEngine::DaemonLogger.new(STDOUT)
+      daemon, t = start_daemon(logger: logger)
+
+      begin
+        wait_for_fork
+      ensure
+        daemon.server.stop(true)
+        t.join
+      end
+
+      test_state(:worker_run).should == 1
+      daemon.server.logger.should == logger
+    end
+  end
+
+  context 'when both :logger and :log options are given' do
+    it 'start ignoring :log' do
+      logger = ServerEngine::DaemonLogger.new(STDOUT)
+      daemon, t = start_daemon(logger: logger, log: STDERR)
+
+      begin
+        wait_for_fork
+      ensure
+        daemon.server.stop(true)
+        t.join
+      end
+
+      test_state(:worker_run).should == 1
+      daemon.server.logger.should == logger
+    end
+  end
+
   it 'start and graceful stop' do
     sv, t = start_supervisor
 

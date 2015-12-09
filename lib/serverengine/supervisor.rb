@@ -46,6 +46,9 @@ module ServerEngine
       @disable_reload = !!@config[:disable_reload]
     end
 
+    # server is available after start_server() call.
+    attr_reader :server
+
     def reload_config
       super
 
@@ -89,7 +92,7 @@ module ServerEngine
     end
 
     def create_server(logger)
-      @create_server_proc.call(@load_config_proc, logger)
+      @server = @create_server_proc.call(@load_config_proc, logger)
     end
 
     def stop(stop_graceful)
