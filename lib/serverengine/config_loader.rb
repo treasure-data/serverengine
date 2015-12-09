@@ -58,10 +58,9 @@ module ServerEngine
     def create_logger
       if logger = @config[:logger]
         @logger = logger
-        return
+      else
+        @logger = @logger_class.new(logdev_from_config(@config), @config)
       end
-
-      @logger = @logger_class.new(logdev_from_config(@config), @config)
     end
 
     def logdev_from_config(config)
