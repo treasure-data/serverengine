@@ -11,4 +11,6 @@ branches:
   only:
     - master
 
+sudo: false
+
 script: bundle exec rake spec
