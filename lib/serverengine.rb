@@ -35,6 +35,7 @@ module ServerEngine
     :MultiThreadServer => 'serverengine/multi_thread_server',
     :MultiSpawnServer => 'serverengine/multi_spawn_server',
     :ProcessManager => 'serverengine/process_manager',
+    :SocketManager => 'serverengine/socket_manager',
     :Worker => 'serverengine/worker',
     :VERSION => 'serverengine/version',
   }.each_pair {|k,v|

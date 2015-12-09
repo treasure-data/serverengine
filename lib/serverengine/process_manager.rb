@@ -93,6 +93,11 @@ module ServerEngine
     end
 
     def fork(&block)
+
+      if ServerEngine.windows?
+        raise NotImplementedError, "fork is not available on this platform. Please use spawn(worker_type = 'spawn')."
+      end
+
       rpipe, wpipe = new_pipe_pair
 
       begin
@@ -143,12 +148,13 @@ module ServerEngine
 
       # pipe is necessary even if @enable_heartbeat == false because
       # parent process detects shutdown of a child process using it
-      rpipe, wpipe = new_pipe_pair
-
       begin
-        options[[wpipe.fileno]] = wpipe
-        if @enable_heartbeat
-          env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+        unless ServerEngine.windows?
+          rpipe, wpipe = new_pipe_pair
+          options[[wpipe.fileno]] = wpipe
+          if @enable_heartbeat
+            env['SERVERENGINE_HEARTBEAT_PIPE'] = wpipe.fileno.to_s
+          end
         end
 
         pid = Process.spawn(env, *args, options)
@@ -156,13 +162,16 @@ module ServerEngine
         m = Monitor.new(self, pid)
 
         @monitors << m
-        @rpipes[rpipe] = m
-        rpipe = nil
+
+        unless ServerEngine.windows?
+          @rpipes[rpipe] = m
+          rpipe = nil
+        end
 
         return m
 
       ensure
-        wpipe.close
+        wpipe.close if wpipe
         rpipe.close if rpipe
       end
     end
@@ -199,30 +208,32 @@ module ServerEngine
         raise AlreadyClosedError.new
       end
 
-      if @rpipes.empty?
-        sleep blocking_timeout if blocking_timeout > 0
-        return nil
-      end
-
-      ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
-
       time ||= Time.now
 
-      if ready_pipes
-        ready_pipes.each do |r|
-          begin
-            r.read_nonblock(1024, @read_buffer)
-          rescue Errno::EAGAIN, Errno::EINTR
-            next
-          rescue #EOFError
-            m = @rpipes.delete(r)
-            m.start_immediate_stop!
-            r.close rescue nil
-            next
-          end
+      unless ServerEngine.windows?
+        if @rpipes.empty?
+          sleep blocking_timeout if blocking_timeout > 0
+          return nil
+        end
 
-          if m = @rpipes[r]
-            m.last_heartbeat_time = time
+        ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
+
+        if ready_pipes
+          ready_pipes.each do |r|
+            begin
+              r.read_nonblock(1024, @read_buffer)
+            rescue Errno::EAGAIN, Errno::EINTR
+              next
+            rescue #EOFError
+              m = @rpipes.delete(r)
+              m.start_immediate_stop!
+              r.close rescue nil
+              next
+            end
+
+            if m = @rpipes[r]
+              m.last_heartbeat_time = time
+            end
           end
         end
       end
@@ -389,7 +400,11 @@ module ServerEngine
         end
 
         begin
-          Process.kill(signal, pid)
+          if ServerEngine.windows? && (signal == :KILL || signal == :SIGKILL)
+            system("taskkill /f /pid #{pid}")
+          else
+            Process.kill(signal, pid)
+          end
         rescue #Errno::ECHILD, Errno::ESRCH, Errno::EPERM
           # assume that any errors mean the child process is dead
           @pid = nil

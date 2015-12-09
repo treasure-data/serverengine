@@ -20,6 +20,7 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = ">= 1.9.3"
 
   gem.add_dependency "sigdump", ["~> 0.2.2"]
+  gem.add_dependency "ffi", [">= 1.9.10"]
 
   gem.add_development_dependency "rake", [">= 0.9.2"]
   gem.add_development_dependency "rspec", ["~> 2.13.0"]
