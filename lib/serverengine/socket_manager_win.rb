@@ -84,6 +84,8 @@ module ServerEngine
       end
 
       def start_server(addr)
+        # TODO: use TCPServer, but this is risky because using not conflict path is easy,
+        # but using not conflict port is difficult. Then We had better implement using NamedPipe.
         @server = TCPServer.new("127.0.0.1", addr)
         @thread = Thread.new do
           begin
