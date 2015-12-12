@@ -58,6 +58,18 @@ module ServerEngine
     end
 
     class Server
+      def self.generate_path
+        if ServerEngine.windows?
+          for port in 10000..65535
+            if `netstat -na | find "#{port}"`.length == 0
+              return port
+            end
+          end
+        else
+          '/tmp/SERVERENGINE_SOCKETMANAGER_' + Time.now.to_s.gsub(' ', '') + '_' + Process.pid.to_s
+        end
+      end
+
       def self.open(path)
         new(path)
       end
