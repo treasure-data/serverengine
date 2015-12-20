@@ -71,8 +71,16 @@ module ServerEngine
   module WinSockWrapper
     extend Fiddle::Importer
 
-    rubydll_path = Dir.glob(RbConfig.expand("$(bindir)")+"/msvcr*ruby*.dll").first
-    dlload rubydll_path
+    dlload "kernel32"
+    extern "int GetModuleFileNameA(int, char *, int)"
+
+    ruby_bin_path_buf = Fiddle::Pointer.malloc(1000)
+    GetModuleFileNameA(0, ruby_bin_path_buf, ruby_bin_path_buf.size)
+
+    ruby_bin_path = ruby_bin_path_buf.to_s.gsub(/\\/, '/')
+    ruby_dll_paths = File.dirname(ruby_bin_path) + '/msvcr*ruby*.dll'
+    ruby_dll_path = Dir.glob(ruby_dll_paths).first
+    dlload ruby_dll_path
 
     extern "int rb_w32_wrap_io_handle(int, int)"
   end
