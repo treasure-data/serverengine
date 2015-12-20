@@ -25,7 +25,7 @@ describe ServerEngine::SignalThread do
     # IGNORE signal handler has possible race condition in Ruby 2.1
     # https://bugs.ruby-lang.org/issues/9835
     # That's why ignore this test in Ruby2.1
-    unless /2.1/ === RUBY_VERSION
+    if RUBY_VERSION >= '2.2'
       t = SignalThread.new do |st|
         st.trap('QUIT', 'SIG_IGN')
       end
