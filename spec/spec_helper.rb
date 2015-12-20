@@ -11,6 +11,7 @@ end
 require 'serverengine'
 include ServerEngine
 
+# require sigdump only in unix, because there is no suport for SIGCONT in windows.
 unless ServerEngine.windows?
   require 'sigdump/setup'
 end
