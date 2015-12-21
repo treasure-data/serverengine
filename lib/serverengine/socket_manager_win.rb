@@ -29,19 +29,25 @@ module ServerEngine
       end
 
       def recv_tcp(peer, sent)
-        proto = WinSock::WSAPROTOCOL_INFO.malloc
-        proto.to_ptr.ref.ptr[0, WinSock::WSAPROTOCOL_INFO.size] = sent
-        sock = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, 0, proto, 0, 1)
-        fd = WinSockWrapper.rb_w32_wrap_io_handle(sock, 0)
-        return TCPServer.for_fd(fd)
+        proto = WinSock::WSAPROTOCOL_INFO.from_bin(sent)
+
+        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, 0, proto, 0, 1)
+        if handle == WinSock::INVALID_SOCKET
+          RbWinSock.raise_last_error("WSASocketA(2)")
+        end
+
+        return RbWinSock.wrap_io_handle(TCPServer, handle, 0)
       end
 
       def recv_udp(peer, sent)
-        proto = WinSock::WSAPROTOCOL_INFO.malloc
-        proto.to_ptr.ref.ptr[0, WinSock::WSAPROTOCOL_INFO.size] = sent
-        sock = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, 0, proto, 0, 1)
-        fd = WinSockWrapper.rb_w32_wrap_io_handle(sock, 0)
-        return UDPSocket.for_fd(fd)
+        proto = WinSock::WSAPROTOCOL_INFO.from_bin(sent)
+
+        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, 0, proto, 0, 1)
+        if handle == WinSock::INVALID_SOCKET
+          RbWinSock.raise_last_error("WSASocketA(2)")
+        end
+
+        return RbWinSock.wrap_io_handle(UDPSocket, handle, 0)
       end
     end
 
@@ -49,29 +55,42 @@ module ServerEngine
       private
 
       def listen_tcp_new(bind_ip, port)
-        # TODO IPv6 is not supported
-        sock = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, Socket::IPPROTO_TCP, nil, 0, 1)
-        sock_addr = pack_sockaddr(bind_ip, port)
-        WinSock.bind(sock, sock_addr, WinSock::SockaddrIn.size)
-        WinSock.listen(sock, Socket::SOMAXCONN)
+        sock_addr = Socket.pack_sockaddr_in(port, bind_ip.to_s)
+
+        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, Socket::IPPROTO_TCP, nil, 0, 1)
+        if handle == WinSock::INVALID_SOCKET
+          RbWinSock.raise_last_error("WSASocketA(2)")
+        end
+
+        # wrap in TCPServer immediately so that its finalizer safely closes the handle
+        sock = RbWinSock.wrap_io_handle(TCPServer, handle, 0)
+
+        unless WinSock.bind(sock.handle, sock_addr, sock_addr.bytesize) == 0
+          RbWinSock.raise_last_error("bind(2)")
+        end
+        unless WinSock.listen(sock.handle, Socket::SOMAXCONN) == 0
+          RbWinSock.raise_last_error("listen(2)")
+        end
 
         return sock
       end
 
       def listen_udp_new(bind_ip, port)
-        # TODO IPv6 is not supported
-        sock = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, 1)
-        sock_addr = pack_sockaddr(bind_ip, port)
-        WinSock.bind(sock, sock_addr, WinSock::SockaddrIn.size)
-        return sock
-      end
+        sock_addr = Socket.pack_sockaddr_in(port, bind_ip.to_s)
 
-      def pack_sockaddr(bind_ip, port)
-        sock_addr = WinSock::SockaddrIn.malloc
-        sock_addr.sin_family = Socket::AF_INET
-        sock_addr.sin_port = htons(port)
-        sock_addr.sin_addr = WinSock.inet_addr(bind_ip.to_s)
-        return sock_addr
+        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, 1)
+        if handle == WinSock::INVALID_SOCKET
+          RbWinSock.raise_last_error("WSASocketA(2)")
+        end
+
+        # wrap in UDPSocket immediately so that its finalizer safely closes the handle
+        sock = RbWinSock.wrap_io_handle(UDPSocket, handle, 0)
+
+        unless WinSock.bind(sock.handle, sock_addr, sock_addr.bytesize) == 0
+          RbWinSock.raise_last_error("bind(2)")
+        end
+
+        return sock
       end
 
       def htons(h)
@@ -98,18 +117,8 @@ module ServerEngine
       end
 
       def stop_server
-        @tcp_sockets.reject! {|key,lhandle|
-          lfd=WinSockWrapper.rb_w32_wrap_io_handle(lhandle, 0)
-          lsock=TCPServer.for_fd(lfd)
-          lsock.close
-          true
-        }
-        @udp_sockets.reject! {|key,uhandle|
-          ufd=WinSockWrapper.rb_w32_wrap_io_handle(uhandle, 0)
-          usock=UDPSocket.for_fd(ufd)
-          usock.close
-          true
-        }
+        @tcp_sockets.reject! {|key,lsock| lsock.close; true }
+        @udp_sockets.reject! {|key,usock| usock.close; true }
         @server.close unless @server.closed?
         @thread.join
       end
@@ -127,11 +136,11 @@ module ServerEngine
         end
 
         proto = WinSock::WSAPROTOCOL_INFO.malloc
-        unless WinSock.WSADuplicateSocketA(sock, pid, proto) == 0
+        unless WinSock.WSADuplicateSocketA(sock.handle, pid, proto) == 0
           raise "WSADuplicateSocketA faild (0x%x)" % WinSock.WSAGetLastError
         end
-        proto_bin = proto.to_ptr.to_s
-        SocketManager.send_peer(peer, proto_bin)
+
+        SocketManager.send_peer(peer, proto.to_bin)
       end
     end
   end

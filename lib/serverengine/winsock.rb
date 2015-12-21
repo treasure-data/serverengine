@@ -33,6 +33,7 @@ module ServerEngine
     extern "int listen(int, int)"
     extern "int WSADuplicateSocketA(int, DWORD, void *)"
     extern "int WSAGetLastError()"
+    extern "BOOL CloseHandle(int)"
 
     SockaddrIn = struct(["short sin_family",
                          "short sin_port",
@@ -66,9 +67,22 @@ module ServerEngine
                                "char szProtocol[256]",
                               ])
 
+    class WSAPROTOCOL_INFO
+      def self.from_bin(bin)
+        proto = malloc
+        proto.to_ptr.ref.ptr[0, size] = bin
+        proto
+      end
+
+      def to_bin
+        to_ptr.to_s
+      end
+    end
+
+    INVALID_SOCKET = -1
   end
 
-  module WinSockWrapper
+  module RbWinSock
     extend Fiddle::Importer
 
     dlload "kernel32"
@@ -82,6 +96,31 @@ module ServerEngine
     ruby_dll_path = Dir.glob(ruby_dll_paths).first
     dlload ruby_dll_path
 
+    extern "int rb_w32_map_errno(int)"
+    extern "void rb_syserr_fail(int, char *)"
+
+    def self.raise_last_error(name)
+      errno = rb_w32_map_errno(WinSock.WSAGetLastError)
+      rb_syserr_fail(errno, name)
+    end
+
     extern "int rb_w32_wrap_io_handle(int, int)"
+
+    def self.wrap_io_handle(sock_class, handle, flags)
+      begin
+        fd = rb_w32_wrap_io_handle(handle, flags)
+        raise_last_error("rb_w32_wrap_io_handle(3)") if fd < 0
+
+        sock = sock_class.for_fd(fd)
+        sock.define_singleton_method(:handle) { handle }
+        handle = nil
+
+        return sock
+      ensure
+        if handle != nil
+          WinSock.CloseHandle(handle)
+        end
+      end
+    end
   end
 end
