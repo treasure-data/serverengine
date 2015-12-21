@@ -117,8 +117,16 @@ module ServerEngine
       end
 
       def stop_server
-        @tcp_sockets.reject! {|key,lsock| lsock.close; true }
-        @udp_sockets.reject! {|key,usock| usock.close; true }
+        @tcp_sockets.reject! {|key,lsock|
+          lsock.close
+          RbWinSock.CloseHandle(lsock.handle)
+          true
+        }
+        @udp_sockets.reject! {|key,usock|
+          usock.close
+          RbWinSock.CloseHandle(usock.handle)
+          true
+        }
         @server.close unless @server.closed?
         @thread.join
       end
