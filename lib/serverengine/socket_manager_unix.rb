@@ -65,6 +65,7 @@ module ServerEngine
           begin
             while peer = @server.accept
               Thread.new(peer, &method(:process_peer))  # process_peer calls send_socket
+              sleep 0.5
             end
           rescue => e
             unless @server.closed?
