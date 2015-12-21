@@ -109,7 +109,9 @@ module ServerEngine
     def self.wrap_io_handle(sock_class, handle, flags)
       begin
         fd = rb_w32_wrap_io_handle(handle, flags)
-        raise_last_error("rb_w32_wrap_io_handle(3)") if fd < 0
+        if fd < 0
+          raise_last_error("rb_w32_wrap_io_handle(3)")
+        end
 
         sock = sock_class.for_fd(fd)
         sock.define_singleton_method(:handle) { handle }

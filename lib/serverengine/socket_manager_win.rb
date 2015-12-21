@@ -137,7 +137,7 @@ module ServerEngine
 
         proto = WinSock::WSAPROTOCOL_INFO.malloc
         unless WinSock.WSADuplicateSocketA(sock.handle, pid, proto) == 0
-          raise "WSADuplicateSocketA faild (0x%x)" % WinSock.WSAGetLastError
+          RbWinSock.raise_last_error("WSADuplicateSocketA(3)")
         end
 
         SocketManager.send_peer(peer, proto.to_bin)
