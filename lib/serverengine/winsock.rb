@@ -114,12 +114,12 @@ module ServerEngine
         end
 
         sock = sock_class.for_fd(fd)
+        wrapped = true
         sock.define_singleton_method(:handle) { handle }
-        handle = nil
 
         return sock
       ensure
-        if handle != nil
+        unless wrapped
           WinSock.CloseHandle(handle)
         end
       end
