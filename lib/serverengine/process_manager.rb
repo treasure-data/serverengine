@@ -286,6 +286,7 @@ module ServerEngine
       end
 
       attr_accessor :last_heartbeat_time
+      attr_reader :pid
 
       def heartbeat_delay
         now = Time.now
