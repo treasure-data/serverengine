@@ -34,6 +34,10 @@ module ServerEngine
       @auto_tick_interval = config[:auto_tick_interval] || 1
 
       @enable_heartbeat = !!config[:enable_heartbeat]
+      if ServerEngine.windows?
+        # heartbeat is not supported on Windows platform. See also spawn method.
+        @enable_heartbeat = false
+      end
       @auto_heartbeat = !!config.fetch(:auto_heartbeat, true)
 
       case op = config[:on_heartbeat_error]
@@ -211,6 +215,8 @@ module ServerEngine
       time ||= Time.now
 
       unless ServerEngine.windows?
+        # heartbeat is not supported on Windows platform.
+
         if @rpipes.empty?
           sleep blocking_timeout if blocking_timeout > 0
           return nil
