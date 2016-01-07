@@ -93,9 +93,8 @@ module ServerEngine
     end
 
     def fork(&block)
-
       if ServerEngine.windows?
-        raise NotImplementedError, "fork is not available on this platform. Please use spawn(worker_type = 'spawn')."
+        raise NotImplementedError, "fork is not available on this platform. Please use spawn (worker_type: 'spawn')."
       end
 
       rpipe, wpipe = new_pipe_pair
@@ -150,6 +149,7 @@ module ServerEngine
       # parent process detects shutdown of a child process using it
       begin
         unless ServerEngine.windows?
+          # heartbeat is not supported on Windows platform
           rpipe, wpipe = new_pipe_pair
           options[[wpipe.fileno]] = wpipe
           if @enable_heartbeat

@@ -6,19 +6,19 @@ describe ServerEngine::SocketManager do
     'tmp/socket_manager_test.sock'
   end
 
-  let(:server_port) do
-    24223
-  end
-
-  let(:test_port) do
-    9101
-  end
-
   after(:each) do
     File.unlink(server_path) if File.exists?(server_path)
   end
 
   if ServerEngine.windows?
+    let(:server_port) do
+     24223
+    end
+
+    let(:test_port) do
+      9101
+    end
+
     it 'is windows' do
       SocketManager::Client.is_a?(SocketManagerWin::ClientModule)
       SocketManager::Server.is_a?(SocketManagerWin::ServerModule)
@@ -28,7 +28,7 @@ describe ServerEngine::SocketManager do
       it 'works' do
         server = SocketManager::Server.open(server_port)
 
-        thread = Thread.new{
+        thread = Thread.new do
 
           client = ServerEngine::SocketManager::Client.new(server_port)
           tcp = client.listen_tcp('127.0.0.1', test_port)
@@ -43,7 +43,7 @@ describe ServerEngine::SocketManager do
           s = tcp.accept
           s.write("ok")
           s.close
-        }
+        end
 
         sleep 1
 
