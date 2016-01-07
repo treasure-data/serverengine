@@ -26,8 +26,25 @@ ServerEngine is a framework to implement robust multiprocess servers like Unicor
 - chuser, chgroup and chumask
 - changing process names
 
+* [Examples](#examples)
+  * [Simplest server](#simplest-server)
+  * [Multiprocess server](#multiprocess-server)
+  * [Multiprocess TCP server](#multiprocess-tcp-server)
+  * [Multiprocess server on Windows and JRuby platforms](#multiprocess-server-on-windows-and-jruby-platforms)
+* [Logging](#logging)
+* [Supervisor auto restart](#supervisor-auto-restart)
+* [Live restart](#live-restart)
+* [Dynamic config reloading](#dynamic-config-reloading)
+* [Signals](#signals)
+* [Utilities](#utilities)
+  * [BlockingFlag](#blockingflag)
+  * [SocketManager](#socketmanager)
+* [Module API](#module-api)
+  * [Worker module](#worker-module)
+  * [Server module](#worker-module)
+* [List of all configurations](#list-of-all-configurations)
 
-## API
+## Examples
 
 ### Simplest server
 
@@ -62,7 +79,7 @@ Send `TERM` signal to kill the daemon. See also **Signals** section bellow for d
 
 ### Multiprocess server
 
-Simply set **worker_type=process** or **worker_type=thread** parameter, and set number of workers to `workers` parameter.
+Simply set **worker_type: "process"** or **worker_type: "thread"** parameter, and set number of workers to `workers` parameter.
 
 ```ruby
 se = ServerEngine.create(nil, MyWorker, {
@@ -123,12 +140,12 @@ se.run
 ```
 
 
-### Multiprocess server on Windows and JRuby platform
+### Multiprocess server on Windows and JRuby platforms
 
-Above **worker_type=process** depends on `fork` system call, which doesn't work on Windows or JRuby platform.
-ServerEngine provides **worker_type=spawn** for those platforms (This is still EXPERIMENTAL). However, unfortunately, you need to implement different worker module because `worker_type=spawn` is not compatible with **worker_type=process** in terms of API.
+Above **worker_type: "process"** depends on `fork` system call, which doesn't work on Windows or JRuby platform.
+ServerEngine provides **worker_type: "spawn"** for those platforms (This is still EXPERIMENTAL). However, unfortunately, you need to implement different worker module because `worker_type: "spawn"` is not compatible with **worker_type: "process"** in terms of API.
 
-What you need to implement at least to use worker_type=spawn is `spawn(process_manager)` method. You will call `process_manager.spawn` at the method, where `spawn` is same with `Process.spawn` excepting return value.
+What you need to implement at least to use worker_type: "spawn" is `def spawn(process_manager)` method. You will call `process_manager.spawn` at the method, where `spawn` is same with `Process.spawn` excepting return value.
 
 ```ruby
 module MyWorker
@@ -164,7 +181,7 @@ se.run
 ```
 
 
-### Logging
+## Logging
 
 ServerEngine logger rotates logs by 1MB and keeps 5 generations by default.
 
@@ -187,25 +204,25 @@ ServerEngine's default logger extends from Ruby's standard Logger library to:
 See also **Configuration** section bellow.
 
 
-### Enabling supervisor process
+## Supervisor auto restart
 
 Server programs running 24x7 hours need to survive even if a process stalled because of unexpected memory swapping or network errors.
 
-Supervisor process runs as the parent process of the server process and monitor it to restart automatically.
+Supervisor process runs as the parent process of the server process and monitor it to restart automatically. You can enable supervisor process by setting `supervisor: true` parameter:
 
 ```ruby
 se = ServerEngine.create(nil, MyWorker, {
   daemonize: true,
   pid_path: 'myserver.pid',
-  supervisor: true,  # enable supervisor process
+  supervisor: true,  # enables supervisor process
 })
 se.run
 ```
 
 
-### Live restart
+## Live restart
 
-You can restart a server process without waiting for completion of all workers using `INT` signal (`supervisor=true` and `enable_detach=true` parameters must be enabled).
+You can restart a server process without waiting for completion of all workers using `INT` signal (`supervisor: true` and `enable_detach: true` parameters must be enabled).
 This feature allows you to minimize downtime where workers take long time to complete a task.
 
 ```
@@ -238,10 +255,10 @@ This feature allows you to minimize downtime where workers take long time to com
                   +----------+    +-----------+
 ```
 
-Note that network servers (which listen sockets) shouldn't use live restart because it causes "Address already in use" error at the server process. Instead, simply use `worker_type=process` configuration and send `USR1` to restart workers instead of the server. It restarts a worker without waiting for shutdown of the other workers. This way doesn't cause downtime because server process doesn't close listening sockets and keeps accepting new clients (See also `restart_server_process` parameter if necessary).
+Note that network servers (which listen sockets) shouldn't use live restart because it causes "Address already in use" error at the server process. Instead, simply use `worker_type: "process"` configuration and send `USR1` to restart workers instead of the server. It restarts a worker without waiting for shutdown of the other workers. This way doesn't cause downtime because server process doesn't close listening sockets and keeps accepting new clients (See also `restart_server_process` parameter if necessary).
 
 
-### Dynamic configuration reloading
+## Dynamic config reloading
 
 Robust servers should not restart only to update configuration parameters.
 
@@ -280,6 +297,20 @@ se.run
 Send `USR2` signal to reload configuration file.
 
 
+## Signals
+
+- **TERM:** graceful shutdown
+- **QUIT:** immediate shutdown (available only when `worker_type` is "process")
+- **USR1:** graceful restart
+- **HUP:** immediate restart (available only when `worker_type` is "process")
+- **USR2:** reload config file and reopen log file
+- **INT:** detach process for live restarting (available only when `supervisor` and `enable_detach` parameters are true. otherwise graceful shutdown)
+- **CONT:** dump stacktrace and memory information to /tmp/sigdump-<pid>.log file
+
+Immediate shutdown and restart send SIGQUIT signal to worker processes which kills the processes.
+Graceful shutdown and restart call `Worker#stop` method and wait for completion of `Worker#run` method.
+
+
 ## Utilities
 
 ### BlockingFlag
@@ -313,11 +344,67 @@ se.run
 ```
 
 
-## Module methods
+### SocketManager
+
+`ServerEngine::SocketManager` is a powerful library to listen on the same port across multiple worker processes dynamically.
+
+```ruby
+module MyServer
+  def before_run
+    @socket_manager_path = ServerEngine::SocketManager.generate_path
+    @socket_manager_server = ServerEngine::SocketManager::Server.open(@socket_manager_path)
+  end
+
+  def after_run
+    @socket_manager_server.close
+  end
+
+  attr_reader :socket_manager_path
+end
+
+module MyWorker
+  def initialize
+    @stop_flag = ServerEngine::BlockingFlag.new
+    @socket_manager = ServerEngine::SocketManager::Client.new(server.socket_manager_path)
+  end
+
+  def run
+    lsock = @socket_manager.listen_tcp('0.0.0.0', 12345)
+    until @stop
+      c = lsock.accept
+      c.write "Awesome work!"
+      c.close
+    end
+  end
+
+  def stop
+    @stop = true
+  end
+end
+
+se = ServerEngine.create(MyServer, MyWorker, {
+  daemonize: true,
+  log: 'myserver.log',
+  pid_path: 'myserver.pid',
+  worker_type: 'process',
+  workers: 4,
+  bind: '0.0.0.0',
+  port: 9071,
+})
+se.run
+```
+
+
+## Module API
+
+Available methods are different depending on `worker_type`. ServerEngine supports 3 worker types:
+
+- **embedded**: uses a thread to run worker module (default). This type doesn't support immediate shutdown or immediate restart.
+- **thread**: uses threads to run worker modules. This type doesn't support immediate shutdown or immediate restart.
+- **process**: uses processes to run worker modules. This type doesn't work on Windows or JRuby platform.
+- **spawn**: uses processes to run worker modules. This type works on Windows and JRuby platform but available interface of worker module is limited (See also Worker module section).
 
 ### Worker module
-
-Available methods are different depending on `worker_type`.
 
 - interface
   - `initialize` is called in the parent process (or thread) in contrast to the other methods
@@ -350,31 +437,7 @@ Available methods are different depending on `worker_type`.
   - `logger` logger
 
 
-## Worker types
-
-ServerEngine supports 3 worker types:
-
-- **embedded**: uses a thread to run worker module (default). This type doesn't support immediate shutdown or immediate restart.
-- **thread**: uses threads to run worker modules. This type doesn't support immediate shutdown or immediate restart.
-- **process**: uses processes to run worker modules. This type doesn't work on Windows or JRuby platform.
-- **spawn**: uses processes to run worker modules. This type works on Windows and JRuby platform but available interface of worker module is limited (See also Worker module section).
-
-
-## Signals
-
-- **TERM:** graceful shutdown
-- **QUIT:** immediate shutdown (available only when `worker_type` is "process")
-- **USR1:** graceful restart
-- **HUP:** immediate restart (available only when `worker_type` is "process")
-- **USR2:** reload config file and reopen log file
-- **INT:** detach process for live restarting (available only when `supervisor` and `enable_detach` parameters are true. otherwise graceful shutdown)
-- **CONT:** dump stacktrace and memory information to /tmp/sigdump-<pid>.log file
-
-Immediate shutdown and restart send SIGQUIT signal to worker processes which kills the processes.
-Graceful shutdown and restart call `Worker#stop` method and wait for completion of `Worker#run` method.
-
-
-## Configuration
+## List of all configurations
 
 - Daemon
   - **daemonize** enables daemonize (default: false)
