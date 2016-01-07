@@ -1,3 +1,12 @@
+2015-01-07 version 1.6.0:
+
+* Added SocketManager, a utility class for multiprocess servers to listen on
+  the same TCP or UDP port dynamically.
+* Added a new attr_reader accessor at Daemon#server and Supervisor#server
+* Added ServerEngine.windows? method to check Windows platform
+* ProcessManager now considers Windows platform
+
+
 2015-09-28 version 1.5.11:
 
 * Fix unexpected logger option handling [#22]
