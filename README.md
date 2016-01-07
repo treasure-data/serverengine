@@ -18,7 +18,7 @@ ServerEngine is a framework to implement robust multiprocess servers like Unicor
                                                   ---+
 ```
 
-ServerEngine also provides useful options and utilities such as logging, signal handlers, changing process names shown by `ps` command, chuser, stacktrace and heap dump on signal.
+ServerEngine also provides useful options and utilities such as **logging**, **signal handlers**, **changing process names** shown by `ps` command, chuser, **stacktrace** and **heap dump on signal**.
 
 * [Examples](#examples)
   * [Simplest server](#simplest-server)
