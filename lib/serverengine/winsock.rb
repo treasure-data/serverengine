@@ -33,7 +33,6 @@ module ServerEngine
     extern "int listen(int, int)"
     extern "int WSADuplicateSocketA(int, DWORD, void *)"
     extern "int WSAGetLastError()"
-    extern "BOOL CloseHandle(int)"
 
     SockaddrIn = struct(["short sin_family",
                          "short sin_port",
@@ -87,6 +86,7 @@ module ServerEngine
 
     dlload "kernel32"
     extern "int GetModuleFileNameA(int, char *, int)"
+    extern "int CloseHandle(int)"
 
     ruby_bin_path_buf = Fiddle::Pointer.malloc(1000)
     GetModuleFileNameA(0, ruby_bin_path_buf, ruby_bin_path_buf.size)
