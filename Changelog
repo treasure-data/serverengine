@@ -1,9 +1,13 @@
+2016-03-04 version 1.6.1:
+
+* Fix CloseHandle definition in winsock 
+
 2015-01-07 version 1.6.0:
 
-* Added SocketManager, a utility class for multiprocess servers to listen on
-  the same TCP or UDP port dynamically.
-* Added a new attr_reader accessor at Daemon#server and Supervisor#server
-* Added ServerEngine.windows? method to check Windows platform
+* added socketmanager, a utility class for multiprocess servers to listen on
+  the same tcp or udp port dynamically.
+* added a new attr_reader accessor at daemon#server and supervisor#server
+* added serverengine.windows? method to check windows platform
 * ProcessManager now considers Windows platform
 
 
