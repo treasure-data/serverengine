@@ -97,6 +97,27 @@ module ServerEngine
       end
     end
 
+    def self.run_server(server_module, worker_module, load_config_proc={}, &block)
+      Daemon.new(server_module, worker_module, load_config_proc, &block).server_main
+    end
+
+    def server_main
+      $0 = @daemon_process_name if @daemon_process_name
+
+      Daemon.change_privilege(@chuser, @chgroup)
+      File.umask(@chumask) if @chumask
+
+      s = create_server(create_logger)
+
+      STDIN.reopen(File::NULL)
+      STDOUT.reopen(File::NULL, "wb")
+      STDERR.reopen(File::NULL, "wb")
+
+      s.install_signal_handlers
+
+      s.main
+    end
+
     def main
       unless @daemonize
         s = create_server(create_logger)
@@ -105,53 +126,62 @@ module ServerEngine
         return 0
       end
 
-      rpipe, wpipe = IO.pipe
-      wpipe.sync = true
+      rpipe = nil
+      if ServerEngine.windows?
+        windows_daemon_cmdline = config[:windows_daemon_cmdline]
+        pid = Process.spawn(*Array(windows_daemon_cmdline))
+      else
+        rpipe, wpipe = IO.pipe
+        wpipe.sync = true
 
-      Process.fork do
-        begin
-          rpipe.close
+        Process.fork do
+          begin
+            rpipe.close
 
-          Process.setsid
-          Process.fork do
-            $0 = @daemon_process_name if @daemon_process_name
-            wpipe.write "#{Process.pid}\n"
+            Process.setsid
+            Process.fork do
+              $0 = @daemon_process_name if @daemon_process_name
+              wpipe.write "#{Process.pid}\n"
 
-            Daemon.change_privilege(@chuser, @chgroup)
-            File.umask(@chumask) if @chumask
+              Daemon.change_privilege(@chuser, @chgroup)
+              File.umask(@chumask) if @chumask
 
-            s = create_server(create_logger)
+              s = create_server(create_logger)
 
-            STDIN.reopen(File::NULL)
-            STDOUT.reopen(File::NULL, "wb")
-            STDERR.reopen(File::NULL, "wb")
+              STDIN.reopen(File::NULL)
+              STDOUT.reopen(File::NULL, "wb")
+              STDERR.reopen(File::NULL, "wb")
 
-            s.install_signal_handlers
+              s.install_signal_handlers
 
-            wpipe.write "\n"
-            wpipe.close
+              wpipe.write "\n"
+              wpipe.close
 
-            s.main
+              s.main
+            end
+
+            exit 0
+          ensure
+            exit! @daemonize_error_exit_code
           end
-
-          exit 0
-        ensure
-          exit! @daemonize_error_exit_code
         end
+
+        wpipe.close
+
+        pid = rpipe.gets.to_i
       end
 
-      wpipe.close
-
-      pid = rpipe.gets.to_i
       if @pid_path
         File.open(@pid_path, "w") {|f|
           f.write "#{pid}\n"
         }
       end
 
-      data = rpipe.read
-      if data != "\n"
-        return @daemonize_error_exit_code
+      unless ServerEngine.windows?
+        data = rpipe.read
+        if data != "\n"
+          return @daemonize_error_exit_code
+        end
       end
 
       return 0
