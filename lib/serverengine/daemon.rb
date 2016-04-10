@@ -62,27 +62,36 @@ module ServerEngine
       DUMP = :CONT
     end
 
+    def self.get_etc_passwd(user)
+      if user.to_i.to_s == user
+        Etc.getpwuid(user.to_i)
+      else
+        Etc.getpwnam(user)
+      end
+    end
+
+    def self.get_etc_group(group)
+      if group.to_i.to_s == group
+        Etc.getgrgid(group.to_i)
+      else
+        Etc.getgrnam(group)
+      end
+    end
+
     def self.change_privilege(user, group)
-      if group
-        chgid = group.to_i
-        if chgid.to_s != group
-          chgid = Process::GID.from_name(group)
-        end
-        Process::GID.change_privilege(chgid)
+      if user
+        etc_pw = Daemon.get_etc_passwd(user)
+        user_groups = [etc_pw.gid]
+        Etc.setgrent
+        Etc.group { |gr| user_groups << gr.gid if gr.mem.include?(etc_pw.name) } # emulate 'id -G'
+
+        Process.groups = Process.groups | user_groups
+        Process::UID.change_privilege(etc_pw.uid)
       end
 
-      if user
-        chuid = user.to_i
-        if chuid.to_s != user
-          chuid = Process::UID.from_name(user)
-        end
-
-        user_groups = `id -G #{Shellwords.escape user}`.split.map(&:to_i)
-        if $?.success?
-          Process.groups = Process.groups | user_groups
-        end
-
-        Process::UID.change_privilege(chuid)
+      if group
+        etc_group = Daemon.get_etc_group(group)
+        Process::GID.change_privilege(etc_group.gid)
       end
 
       nil
