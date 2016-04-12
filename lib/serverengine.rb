@@ -51,4 +51,14 @@ module ServerEngine
   def self.create(server_module, worker_module, load_config_proc={}, &block)
     Daemon.new(server_module, worker_module, load_config_proc, &block)
   end
+
+  def self.ruby_bin_path
+    if ServerEngine.windows?
+      ruby_path = "\0" * 256
+      GetModuleFileName.call(0, ruby_path, 256)
+      return ruby_path.rstrip.gsub(/\\/, '/')
+    else
+      return File.join(RbConfig::CONFIG["bindir"], RbConfig::CONFIG["RUBY_INSTALL_NAME"]) + RbConfig::CONFIG["EXEEXT"]
+    end
+  end
 end
