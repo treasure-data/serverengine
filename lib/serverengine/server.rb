@@ -65,16 +65,16 @@ module ServerEngine
     def install_signal_handlers
       s = self
       SignalThread.new do |st|
-        st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
-        st.trap(Daemon::Signals::DETACH) { s.stop(true) }
+        st.trap(@config[:signal_graceful_stop] || Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
+        st.trap(@config[:signal_detach] || Daemon::Signals::DETACH) { s.stop(true) }
         # Here disables signals excepting GRACEFUL_STOP == :SIGTERM because
         # only SIGTERM is available on all version of Windows.
         unless ServerEngine.windows?
-          st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
-          st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
-          st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
-          st.trap(Daemon::Signals::RELOAD) { s.reload }
-          st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+          st.trap(@config[:signal_immediate_stop] || Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
+          st.trap(@config[:signal_graceful_restart] || Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
+          st.trap(@config[:signal_immediate_restart] || Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
+          st.trap(@config[:signal_reload] || Daemon::Signals::RELOAD) { s.reload }
+          st.trap(@config[:signal_dump] || Daemon::Signals::DUMP) { Sigdump.dump }
         end
       end
     end
