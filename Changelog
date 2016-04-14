@@ -1,3 +1,9 @@
+2016-04-14 version 1.6.2:
+
+* Fix to use Etc instead of id command in change_privilege for windows
+* Fix signal handler on Server class to be configurable
+* Fix to use spawn when damonize on windows
+
 2016-03-04 version 1.6.1:
 
 * Fix CloseHandle definition in winsock
