@@ -94,15 +94,14 @@ module ServerEngine
     ruby_bin_path = ruby_bin_path_buf.to_s.gsub(/\\/, '/')
     ruby_dll_paths = File.dirname(ruby_bin_path) + '/msvcr*ruby*.dll'
     ruby_dll_path = Dir.glob(ruby_dll_paths).first
-    puts ruby_dll_path
     dlload ruby_dll_path
 
-    extern "void rb_syserr_fail(int, char *)"
-    extern "int rb_w32_map_errno(int)"
+    # extern "void rb_syserr_fail(int, char *)"
+    # extern "int rb_w32_map_errno(int)"
 
     def self.raise_last_error(name)
-      errno = rb_w32_map_errno(WinSock.WSAGetLastError)
-      rb_syserr_fail(errno, name)
+      # errno = rb_w32_map_errno(WinSock.WSAGetLastError)
+      # rb_syserr_fail(errno, name)
     end
 
     extern "int rb_w32_wrap_io_handle(int, int)"
