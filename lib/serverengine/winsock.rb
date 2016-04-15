@@ -96,12 +96,12 @@ module ServerEngine
     ruby_dll_path = Dir.glob(ruby_dll_paths).first
     dlload ruby_dll_path
 
-    extern "int rb_w32_map_errno(int)"
-    extern "void rb_syserr_fail(int, char *)"
+    # extern "void rb_syserr_fail(int, char *)"
+    # extern "int rb_w32_map_errno(int)"
 
     def self.raise_last_error(name)
-      errno = rb_w32_map_errno(WinSock.WSAGetLastError)
-      rb_syserr_fail(errno, name)
+      # errno = rb_w32_map_errno(WinSock.WSAGetLastError)
+      # rb_syserr_fail(errno, name)
     end
 
     extern "int rb_w32_wrap_io_handle(int, int)"
