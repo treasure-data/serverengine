@@ -78,7 +78,12 @@ module ServerEngine
       def listen_udp_new(bind_ip, port)
         sock_addr = Socket.pack_sockaddr_in(port, bind_ip.to_s)
 
-        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, 1)
+        if IPAddr.new(IPSocket.getaddress(bind_ip.to_s)).ipv4?
+          handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, 1)
+        else
+          handle = WinSock.WSASocketA(Socket::AF_INET6, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, 1)
+        end
+
         if handle == WinSock::INVALID_SOCKET
           RbWinSock.raise_last_error("WSASocketA(2)")
         end
