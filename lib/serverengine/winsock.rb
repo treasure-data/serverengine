@@ -92,7 +92,7 @@ module ServerEngine
     GetModuleFileNameA(0, ruby_bin_path_buf, ruby_bin_path_buf.size)
 
     ruby_bin_path = ruby_bin_path_buf.to_s.gsub(/\\/, '/')
-    ruby_dll_paths = File.dirname(ruby_bin_path) + '/msvcr*ruby*.dll'
+    ruby_dll_paths = File.dirname(ruby_bin_path) + '/*msvcr*ruby*.dll'
     ruby_dll_path = Dir.glob(ruby_dll_paths).first
     dlload ruby_dll_path
 
