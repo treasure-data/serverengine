@@ -65,6 +65,10 @@ describe ServerEngine::SocketManager do
     end
 
   else
+    let(:test_port) do
+      9102
+    end
+
     it 'is unix' do
       SocketManager::Client.is_a?(SocketManagerUnix::ClientModule)
       SocketManager::Server.is_a?(SocketManagerUnix::ServerModule)
