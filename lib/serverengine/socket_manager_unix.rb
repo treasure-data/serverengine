@@ -80,7 +80,8 @@ module ServerEngine
         @tcp_sockets.reject! {|key,lsock| lsock.close; true }
         @udp_sockets.reject! {|key,usock| usock.close; true }
         @server.close unless @server.closed?
-        @thread.join
+        # It cause dead lock and can't finish when joining thread using Ruby 2.1 on linux.
+        @thread.join if RUBY_VERSION >= "2.2"
       end
 
       def send_socket(peer, pid, method, bind, port)
