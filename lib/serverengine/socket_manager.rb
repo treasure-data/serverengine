@@ -124,6 +124,9 @@ module ServerEngine
           return "[#{bind_ip}]:#{port}", bind_ip
         else
           # assuming ipv4
+          if bind_ip == "127.0.0.1" or bind_ip == "0.0.0.0"
+            return "localhost:#{port}", bind_ip
+          end
           return "#{bind_ip}:#{port}", bind_ip
         end
       end
