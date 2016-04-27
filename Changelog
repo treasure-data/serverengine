@@ -1,3 +1,10 @@
+2016-04-27 version 1.6.3:
+
+* Fix Socket Manager for UDP to adapt to ipv6
+* Fix Socket Manager not to join thread in Ruby 2.1
+* Fix Socket Manager to identify all localhost address
+* Fix ruby dll path on Ruby x64
+
 2016-04-14 version 1.6.2:
 
 * Fix to use Etc instead of id command in change_privilege for windows
