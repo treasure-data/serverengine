@@ -37,7 +37,7 @@ describe ServerEngine::SocketManager do
           incr_test_state(:is_tcp_server) if tcp.is_a?(TCPServer)
           incr_test_state(:is_udp_socket) if udp.is_a?(UDPSocket)
 
-          data, from = udp.recvfrom(10)
+          data, _from = udp.recvfrom(10)
           incr_test_state(:udp_data_sent) if data == "ok"
 
           s = tcp.accept
@@ -89,7 +89,7 @@ describe ServerEngine::SocketManager do
           incr_test_state(:is_tcp_server) if tcp.is_a?(TCPServer)
           incr_test_state(:is_udp_socket) if udp.is_a?(UDPSocket)
 
-          data, from = udp.recvfrom(10)
+          data, _from = udp.recvfrom(10)
           incr_test_state(:udp_data_sent) if data == "ok"
 
           s = tcp.accept
