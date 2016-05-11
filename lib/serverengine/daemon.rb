@@ -31,8 +31,8 @@ module ServerEngine
       @daemonize = @config.fetch(:daemonize, false)
 
       if @config.fetch(:supervisor, false)
-        @create_server_proc = lambda do |load_config_proc,logger|
-          s = Supervisor.new(server_module, worker_module, load_config_proc)
+        @create_server_proc = lambda do |_load_config_proc,logger|
+          s = Supervisor.new(server_module, worker_module, _load_config_proc)
           s.logger = logger
           s
         end
