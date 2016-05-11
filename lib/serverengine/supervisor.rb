@@ -149,7 +149,7 @@ module ServerEngine
       while true
         # keep the child process alive in this loop
         until @detach_flag.wait(0.5)
-          if stat = try_join
+          if try_join
             return if @stop   # supervisor stoppped explicitly
 
             # child process died unexpectedly.
