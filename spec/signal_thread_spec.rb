@@ -39,7 +39,7 @@ describe ServerEngine::SignalThread do
   it 'signal in handler' do
     n = 0
 
-    t = SignalThread.new do |st|
+    SignalThread.new do |st|
       st.trap('QUIT') do
         if n < 3
           Process.kill('QUIT', Process.pid)
@@ -55,8 +55,6 @@ describe ServerEngine::SignalThread do
   end
 
   it 'stop in handler' do
-    n = 0
-
     t = SignalThread.new do |st|
       st.trap('QUIT') { st.stop }
     end
@@ -70,7 +68,7 @@ describe ServerEngine::SignalThread do
   it 'should not deadlock' do
     n = 0
 
-    t = SignalThread.new do |st|
+    SignalThread.new do |st|
       st.trap('CONT') { n += 1 }
     end
 
