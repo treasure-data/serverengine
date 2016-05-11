@@ -7,7 +7,7 @@ describe ServerEngine::SocketManager do
   end
 
   after(:each) do
-    File.unlink(server_path) if File.exists?(server_path)
+    File.unlink(server_path) if File.exist?(server_path)
   end
 
   if ServerEngine.windows?
