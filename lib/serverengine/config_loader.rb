@@ -29,6 +29,8 @@ module ServerEngine
         end
       end
 
+      @logger = nil
+
       reload_config
     end
 
