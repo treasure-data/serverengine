@@ -32,6 +32,7 @@ module ServerEngine
     def initialize(logdev, config={})
       @rotate_age = config[:log_rotate_age] || 5
       @rotate_size = config[:log_rotate_size] || 1048576
+      @file_dev = nil
 
       if RUBY_VERSION < "2.1.0"
         # Ruby < 2.1.0 has a problem around log rotation with multiprocess:
