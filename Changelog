@@ -1,3 +1,9 @@
+2016-05-19 version 1.6.4:
+
+* Refactor to delete some warnings
+* Fix infinite self call bug in SignalTread
+* Add ruby 2.1 support for TravisCI
+
 2016-04-27 version 1.6.3:
 
 * Fix Socket Manager for UDP to adapt to ipv6
