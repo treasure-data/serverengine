@@ -54,7 +54,7 @@ module ServerEngine
     end
 
     def handlers
-      handlers.dup
+      @handlers.dup
     end
 
     def stop
