@@ -124,6 +124,8 @@ module ServerEngine
               wpipe.write "\n"
               wpipe.close
 
+              logger.debug "calling Server#main at #{Process.pid}"
+
               s.main
             end
 
