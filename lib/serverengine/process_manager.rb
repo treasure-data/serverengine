@@ -57,7 +57,7 @@ module ServerEngine
       @read_buffer = ''
 
       if @auto_tick
-        TickThread.new(self)
+        TickThread.new(@auto_tick_interval, &method(:tick))
       end
     end
 
@@ -96,6 +96,21 @@ module ServerEngine
       }
     end
 
+    def monitor_options
+      {
+        enable_heartbeat: @enable_heartbeat,
+        heartbeat_timeout: @heartbeat_timeout,
+        graceful_kill_signal: @graceful_kill_signal,
+        graceful_kill_timeout: @graceful_kill_timeout,
+        graceful_kill_interval: @graceful_kill_interval,
+        graceful_kill_interval_increment: @graceful_kill_interval_increment,
+        immediate_kill_signal: @immediate_kill_signal,
+        immediate_kill_timeout: @immediate_kill_timeout,
+        immediate_kill_interval: @immediate_kill_interval,
+        immediate_kill_interval_increment: @immediate_kill_interval_increment,
+      }
+    end
+
     def fork(&block)
       if ServerEngine.windows?
         raise NotImplementedError, "fork is not available on this platform. Please use spawn (worker_type: 'spawn')."
@@ -109,7 +124,7 @@ module ServerEngine
           begin
             t = Target.new(wpipe)
             if @enable_heartbeat && @auto_heartbeat
-              HeartbeatThread.new(self, t, @heartbeat_error_proc)
+              HeartbeatThread.new(@heartbeat_interval, t, @heartbeat_error_proc)
             end
 
             block.call(t)
@@ -122,7 +137,7 @@ module ServerEngine
           end
         end
 
-        m = Monitor.new(self, pid)
+        m = Monitor.new(pid, monitor_options)
 
         @monitors << m
         @rpipes[rpipe] = m
@@ -163,7 +178,7 @@ module ServerEngine
 
         pid = Process.spawn(env, *args, options)
 
-        m = Monitor.new(self, pid)
+        m = Monitor.new(pid, monitor_options)
 
         @monitors << m
 
@@ -279,9 +294,21 @@ module ServerEngine
     HEARTBEAT_MESSAGE = [0].pack('C')
 
     class Monitor
-      def initialize(pm, pid)
-        @pm = pm
+      def initialize(pid, opts={})
         @pid = pid
+
+        @enable_heartbeat = kwargs[:enable_heartbeat]
+        @heartbeat_timeout = kwargs[:heartbeat_timeout]
+
+        @graceful_kill_signal   = kwargs[:graceful_kill_signal]
+        @graceful_kill_timeout  = kwargs[:graceful_kill_timeout]
+        @graceful_kill_interval = kwargs[:graceful_kill_interval]
+        @graceful_kill_interval_increment = kwargs[:graceful_kill_interval_increment]
+
+        @immediate_kill_signal   = kwargs[:immediate_kill_signal]
+        @immediate_kill_timeout  = kwargs[:immediate_kill_timeout]
+        @immediate_kill_interval = kwargs[:immediate_kill_interval]
+        @immediate_kill_interval_increment = kwargs[:immediate_kill_interval_increment]
 
         @error = false
         @last_heartbeat_time = Time.now
@@ -367,13 +394,13 @@ module ServerEngine
           # check heartbeat timeout or escalation
           if (
               # heartbeat timeout
-              @pm.enable_heartbeat &&
-              heartbeat_delay >= @pm.heartbeat_timeout
+              @enable_heartbeat &&
+              heartbeat_delay >= @heartbeat_timeout
              ) || (
                # escalation
                @graceful_kill_start_time &&
-               @pm.graceful_kill_timeout >= 0 &&
-               @graceful_kill_start_time < now - @pm.graceful_kill_timeout
+               @graceful_kill_timeout >= 0 &&
+               @graceful_kill_start_time < now - @graceful_kill_timeout
              )
             # escalate to immediate kill
             @kill_count = 0
@@ -390,20 +417,20 @@ module ServerEngine
         # send signal now
 
         if @immediate_kill_start_time
-          interval = @pm.immediate_kill_interval
-          interval_incr = @pm.immediate_kill_interval_increment
-          if @pm.immediate_kill_timeout >= 0 &&
-              @immediate_kill_start_time <= now - @pm.immediate_kill_timeout
+          interval = @immediate_kill_interval
+          interval_incr = @immediate_kill_interval_increment
+          if @immediate_kill_timeout >= 0 &&
+              @immediate_kill_start_time <= now - @immediate_kill_timeout
             # escalate to SIGKILL
             signal = :KILL
           else
-            signal = @pm.immediate_kill_signal
+            signal = @immediate_kill_signal
           end
 
         else
-          signal = @pm.graceful_kill_signal
-          interval = @pm.graceful_kill_interval
-          interval_incr = @pm.graceful_kill_interval_increment
+          signal = @graceful_kill_signal
+          interval = @graceful_kill_interval
+          interval_incr = @graceful_kill_interval_increment
         end
 
         begin
@@ -427,8 +454,9 @@ module ServerEngine
     end
 
     class TickThread < Thread
-      def initialize(pm)
-        @pm = pm
+      def initialize(auto_tick_interval, &tick)
+        @auto_tick_interval = auto_tick_interval
+        @tick = tick
         super(&method(:main))
       end
 
@@ -436,7 +464,7 @@ module ServerEngine
 
       def main
         while true
-          @pm.tick(@pm.auto_tick_interval)
+          @tick.call(@auto_tick_interval)
         end
         nil
       rescue AlreadyClosedError
@@ -464,8 +492,8 @@ module ServerEngine
     end
 
     class HeartbeatThread < Thread
-      def initialize(pm, target, error_proc)
-        @pm = pm
+      def initialize(heartbeat_interval, target, error_proc)
+        @heartbeat_interval = heartbeat_interval
         @target = target
         @error_proc = error_proc
         super(&method(:main))
@@ -475,7 +503,7 @@ module ServerEngine
 
       def main
         while true
-          sleep @pm.heartbeat_interval
+          sleep @heartbeat_interval
           @target.heartbeat!
         end
         nil
