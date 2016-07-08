@@ -16,6 +16,10 @@
 #    limitations under the License.
 #
 
+require 'serverengine/utils'
+
+require 'socket'
+
 module ServerEngine
   module SocketManagerUnix
 

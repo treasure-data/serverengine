@@ -15,9 +15,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-module ServerEngine
 
-  require 'fcntl'
+require 'fcntl'
+
+module ServerEngine
 
   class ProcessManager
     def initialize(config={})
@@ -113,7 +114,7 @@ module ServerEngine
 
     def fork(&block)
       if ServerEngine.windows?
-        raise NotImplementedError, "fork is not available on this platform. Please use spawn (worker_type: 'spawn')."
+        raise "fork is not available on this platform. Please use spawn (worker_type: 'spawn')."
       end
 
       rpipe, wpipe = new_pipe_pair
@@ -266,28 +267,6 @@ module ServerEngine
       nil
     end
 
-    def self.format_signal_name(n)
-      Signal.list.each_pair {|k,v|
-        return "SIG#{k}" if n == v
-      }
-      return n
-    end
-
-    def self.format_join_status(code)
-      case code
-      when Process::Status
-        if code.signaled?
-          "signal #{format_signal_name(code.termsig)}"
-        else
-          "status #{code.exitstatus}"
-        end
-      when Exception
-        "exception #{code}"
-      when nil
-        "unknown reason"
-      end
-    end
-
     class AlreadyClosedError < EOFError
     end
 
@@ -297,18 +276,18 @@ module ServerEngine
       def initialize(pid, opts={})
         @pid = pid
 
-        @enable_heartbeat = kwargs[:enable_heartbeat]
-        @heartbeat_timeout = kwargs[:heartbeat_timeout]
+        @enable_heartbeat = opts[:enable_heartbeat]
+        @heartbeat_timeout = opts[:heartbeat_timeout]
 
-        @graceful_kill_signal   = kwargs[:graceful_kill_signal]
-        @graceful_kill_timeout  = kwargs[:graceful_kill_timeout]
-        @graceful_kill_interval = kwargs[:graceful_kill_interval]
-        @graceful_kill_interval_increment = kwargs[:graceful_kill_interval_increment]
+        @graceful_kill_signal   = opts[:graceful_kill_signal]
+        @graceful_kill_timeout  = opts[:graceful_kill_timeout]
+        @graceful_kill_interval = opts[:graceful_kill_interval]
+        @graceful_kill_interval_increment = opts[:graceful_kill_interval_increment]
 
-        @immediate_kill_signal   = kwargs[:immediate_kill_signal]
-        @immediate_kill_timeout  = kwargs[:immediate_kill_timeout]
-        @immediate_kill_interval = kwargs[:immediate_kill_interval]
-        @immediate_kill_interval_increment = kwargs[:immediate_kill_interval_increment]
+        @immediate_kill_signal   = opts[:immediate_kill_signal]
+        @immediate_kill_timeout  = opts[:immediate_kill_timeout]
+        @immediate_kill_interval = opts[:immediate_kill_interval]
+        @immediate_kill_interval_increment = opts[:immediate_kill_interval_increment]
 
         @error = false
         @last_heartbeat_time = Time.now

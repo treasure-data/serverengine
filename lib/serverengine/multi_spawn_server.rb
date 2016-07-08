@@ -15,6 +15,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+
+require 'serverengine/utils'
+require 'serverengine/signals'
+
+require 'serverengine/monitor'
+
+require 'serverengine/process_manager'
+require 'serverengine/multi_worker_server'
+
 module ServerEngine
 
   class MultiSpawnServer < MultiWorkerServer
@@ -22,15 +31,15 @@ module ServerEngine
       if ServerEngine.windows?
         @pm = ProcessManager.new(
           auto_tick: false,
-          graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
+          graceful_kill_signal: Signals::GRACEFUL_STOP,
           immediate_kill_signal: false,
           enable_heartbeat: false,
         )
       else
         @pm = ProcessManager.new(
           auto_tick: false,
-          graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
-          immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+          graceful_kill_signal: Signals::GRACEFUL_STOP,
+          immediate_kill_signal: Signals::IMMEDIATE_STOP,
           enable_heartbeat: false,
         )
       end
@@ -71,26 +80,11 @@ module ServerEngine
         w.after_start
       end
 
-      return WorkerMonitor.new(w, wid, pmon, @reload_signal)
+      return Monitor::SpawnWorkerMonitor.new(w, wid, pmon, @reload_signal)
     end
 
     def wait_tick
       @pm.tick(0.5)
     end
-
-    class WorkerMonitor < MultiProcessServer::WorkerMonitor
-      def initialize(worker, wid, pmon, reload_signal)
-        super(worker, wid, pmon)
-        @reload_signal = reload_signal
-      end
-
-      def send_reload
-        if @reload_signal
-          @pmon.send_signal(@reload_signal) if @pmon
-        end
-        nil
-      end
-    end
   end
-
 end

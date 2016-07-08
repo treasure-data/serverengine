@@ -36,4 +36,25 @@ module ServerEngine
 
   extend ClassMethods
 
+  def self.format_signal_name(n)
+    Signal.list.each_pair {|k,v|
+      return "SIG#{k}" if n == v
+    }
+    return n
+  end
+
+  def self.format_join_status(code)
+    case code
+    when Process::Status
+      if code.signaled?
+        "signal #{format_signal_name(code.termsig)}"
+      else
+        "status #{code.exitstatus}"
+      end
+    when Exception
+      "exception #{code}"
+    when nil
+      "unknown reason"
+    end
+  end
 end

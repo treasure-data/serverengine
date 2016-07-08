@@ -15,6 +15,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+
+require 'serverengine/server'
+
 module ServerEngine
 
   class MultiWorkerServer < Server
@@ -23,6 +26,10 @@ module ServerEngine
       @last_start_worker_time = 0
 
       super(worker_module, load_config_proc, &block)
+    end
+
+    def start_worker(wid)
+      raise NotImplementedError, "Use child class instead of using this class"
     end
 
     def stop(stop_graceful)

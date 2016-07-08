@@ -1,7 +1,7 @@
 #
 # ServerEngine
 #
-# Copyright (C) 2012-2013 Sadayuki Furuhashi
+# Copyright (C) 2012-2013 FURUHASHI Sadayuki
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -16,24 +16,14 @@
 #    limitations under the License.
 #
 
-require 'serverengine/monitor'
-require 'serverengine/multi_worker_server'
-
 module ServerEngine
-  class MultiThreadServer < MultiWorkerServer
-    private
-
-    def start_worker(wid)
-      w = create_worker(wid)
-
-      w.before_fork
-      begin
-        thread = Thread.new(&w.method(:main))
-      ensure
-        w.after_start
-      end
-
-      return Monitor::ThreadWorkerMonitor.new(w, thread)
-    end
+  module Signals
+    GRACEFUL_STOP = :TERM
+    IMMEDIATE_STOP = :QUIT
+    GRACEFUL_RESTART = :USR1
+    IMMEDIATE_RESTART = :HUP
+    RELOAD = :USR2
+    DETACH = :INT
+    DUMP = :CONT
   end
 end
