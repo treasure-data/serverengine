@@ -10,6 +10,8 @@ describe ServerEngine::Supervisor do
   end
 
   def start_daemon(config={})
+    config = config.dup
+    config[:windows_daemon_cmdline] = windows_daemon_cmdline
     daemon = Daemon.new(nil, TestWorker, config)
     t = Thread.new { daemon.main }
 
