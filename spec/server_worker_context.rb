@@ -15,7 +15,8 @@ require "rspec"
 $state_file_mutex = Mutex.new # TODO
 require "server_worker_context"
 include ServerEngine
-Daemon.run_server(TestServer, TestWorker)
+command_pipe = STDIN.dup
+Daemon.run_server(TestServer, TestWorker, command_pipe: command_pipe)
       end
     end
   end
