@@ -49,6 +49,7 @@ module ServerEngine
       @chumask = @config[:chumask]
 
       @pid = nil
+      extend ServerEngine::CommandSender::Signal
     end
 
     # server is available when run() is called. It is a Supervisor instance if supervisor is set to true. Otherwise a Server instance.
@@ -131,20 +132,21 @@ module ServerEngine
 
     def main
       unless @daemonize
+        @pid = Process.pid
         s = create_server(create_logger)
         s.install_signal_handlers
         s.main
         return 0
       end
 
-      rpipe = nil
+      rpipe, wpipe = IO.pipe
+      wpipe.sync = true
+
       if ServerEngine.windows?
         windows_daemon_cmdline = config[:windows_daemon_cmdline]
         @pid = Process.spawn(*Array(windows_daemon_cmdline))
+        wpipe.close
       else
-        rpipe, wpipe = IO.pipe
-        wpipe.sync = true
-
         Process.fork do
           begin
             rpipe.close
@@ -190,32 +192,14 @@ module ServerEngine
 
       unless ServerEngine.windows?
         data = rpipe.read
+        rpipe.close
         if data != "\n"
           return @daemonize_error_exit_code
         end
       end
+      rpipe.close
 
       return 0
-    end
-
-    def stop(graceful)
-      Process.kill(!ServerEngine.windows? && graceful ? Signals::GRACEFUL_STOP : Signals::IMMEDIATE_STOP, @pid)
-    end
-
-    def restart(graceful)
-      Process.kill(graceful ? Signals::GRACEFUL_RESTART : Signals::IMMEDIATE_RESTART, @pid)
-    end
-
-    def reload
-      Process.kill(Signals::RELOAD, @pid)
-    end
-
-    def detach
-      Process.kill(Signals::DETACH, @pid)
-    end
-
-    def dump
-      Process.kill(Signals::DUMP, @pid)
     end
 
     private

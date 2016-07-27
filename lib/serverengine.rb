@@ -37,6 +37,7 @@ module ServerEngine
     :ProcessManager => 'serverengine/process_manager',
     :SocketManager => 'serverengine/socket_manager',
     :Worker => 'serverengine/worker',
+    :CommandSender => 'serverengine/command_sender',
     :VERSION => 'serverengine/version',
   }.each_pair {|k,v|
     autoload k, File.expand_path(v, File.dirname(__FILE__))
