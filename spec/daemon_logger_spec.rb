@@ -112,27 +112,29 @@ describe ServerEngine::DaemonLogger do
     lambda { subject.level = 'unknown' }.should raise_error(ArgumentError)
   end
 
-  it 'rotation' do
-    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10000)
-    # 100 bytes
-    log.warn "test1"*20
-    File.exist?("tmp/se1.log").should == true
-    File.exist?("tmp/se1.log.0").should == false
+  unless ServerEngine.windows?
+    it 'rotation' do
+      log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10000)
+      # 100 bytes
+      log.warn "test1"*20
+      File.exist?("tmp/se1.log").should == true
+      File.exist?("tmp/se1.log.0").should == false
 
-    # 10000 bytes
-    100.times { log.warn "test2"*20 }
-    File.exist?("tmp/se1.log").should == true
-    File.exist?("tmp/se1.log.0").should == true
-    File.read("tmp/se1.log.0") =~ /test2$/
+      # 10000 bytes
+      100.times { log.warn "test2"*20 }
+      File.exist?("tmp/se1.log").should == true
+      File.exist?("tmp/se1.log.0").should == true
+      File.read("tmp/se1.log.0") =~ /test2$/
 
-    # 10000 bytes
-    100.times { log.warn "test3"*20 }
-    File.exist?("tmp/se1.log").should == true
-    File.exist?("tmp/se1.log.1").should == true
-    File.exist?("tmp/se1.log.2").should == false
+      # 10000 bytes
+      100.times { log.warn "test3"*20 }
+      File.exist?("tmp/se1.log").should == true
+      File.exist?("tmp/se1.log.1").should == true
+      File.exist?("tmp/se1.log.2").should == false
 
-    log.warn "test4"*20
-    File.read("tmp/se1.log.0") =~ /test5$/
+      log.warn "test4"*20
+      File.read("tmp/se1.log.0") =~ /test5$/
+    end
   end
 
   it 'IO logger' do
@@ -145,26 +147,28 @@ describe ServerEngine::DaemonLogger do
     log.reopen!
   end
 
-  it 'inter-process locking on rotation' do
-    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
-    r, w = IO.pipe
-    $stderr = w # To capture #warn output in DaemonLogger
-    pid1 = Process.fork do
-      10.times do
-        log.info '0' * 15
+  unless ServerEngine.windows?
+    it 'inter-process locking on rotation' do
+      log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
+      r, w = IO.pipe
+      $stderr = w # To capture #warn output in DaemonLogger
+      pid1 = Process.fork do
+        10.times do
+          log.info '0' * 15
+        end
       end
-    end
-    pid2 = Process.fork do
-      10.times do
-        log.info '0' * 15
+      pid2 = Process.fork do
+        10.times do
+          log.info '0' * 15
+        end
       end
+      Process.waitpid pid1
+      Process.waitpid pid2
+      w.close
+      stderr = r.read
+      r.close
+      $stderr = STDERR
+      stderr.should_not =~ /(log shifting failed|log writing failed|log rotation inter-process lock failed)/
     end
-    Process.waitpid pid1
-    Process.waitpid pid2
-    w.close
-    stderr = r.read
-    r.close
-    $stderr = STDERR
-    stderr.should_not =~ /(log shifting failed|log writing failed|log rotation inter-process lock failed)/
   end
 end
