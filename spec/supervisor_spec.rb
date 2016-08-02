@@ -2,16 +2,22 @@
 describe ServerEngine::Supervisor do
   include_context 'test server and worker'
 
-  def start_supervisor(config={})
-    sv = Supervisor.new(TestServer, TestWorker, config)
+  def start_supervisor(worker = nil, config={})
+    if ServerEngine.windows?
+      config[:windows_daemon_cmdline] = windows_supervisor_cmdline(nil, worker, config)
+      config[:command_sender] = "pipe"
+    end
+    sv = Supervisor.new(TestServer, worker || TestWorker, config)
     t = Thread.new { sv.main }
 
     return sv, t
   end
 
   def start_daemon(config={})
-    config = config.dup
-    config[:windows_daemon_cmdline] = windows_daemon_cmdline
+    if ServerEngine.windows?
+      config[:windows_daemon_cmdline] = windows_daemon_cmdline
+      config[:command_sender] = "pipe"
+    end
     daemon = Daemon.new(nil, TestWorker, config)
     t = Thread.new { daemon.main }
 
@@ -179,16 +185,8 @@ describe ServerEngine::Supervisor do
     lambda { sv.main }.should raise_error(StandardError)
   end
 
-  module RunErrorWorker
-    def run
-      incr_test_state :worker_run
-      raise StandardError, "error test"
-    end
-  end
-
   it 'auto restart in limited ratio' do
-    sv = Supervisor.new(TestServer, RunErrorWorker, server_restart_wait: 1)
-    t = Thread.new { sv.main }
+    sv, t = start_supervisor(RunErrorWorker, server_restart_wait: 1)
 
     begin
       sleep 2.2

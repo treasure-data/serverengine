@@ -9,15 +9,50 @@ def reset_test_state
   $state_file_mutex = Mutex.new
   if ServerEngine.windows?
     open("tmp/daemon.rb", "w") do |f|
-      f.puts <<-end
+      f.puts <<-'end_of_script'
 require "serverengine"
 require "rspec"
 $state_file_mutex = Mutex.new # TODO
 require "server_worker_context"
 include ServerEngine
 command_pipe = STDIN.dup
+STDIN.reopen(File::NULL)
 Daemon.run_server(TestServer, TestWorker, command_pipe: command_pipe)
-      end
+      end_of_script
+    end
+
+    open("tmp/supervisor.rb", "w") do |f|
+      f.puts <<-'end_of_script'
+require "serverengine"
+require "rspec"
+$state_file_mutex = Mutex.new # TODO
+require "server_worker_context"
+include ServerEngine
+server = TestServer
+worker = TestWorker
+config = {command_pipe: STDIN.dup}
+STDIN.reopen(File::NULL)
+ARGV.each do |arg|
+  case arg
+  when /^server=(.*)$/
+    server = Object.const_get($1)
+  when /^worker=(.*)$/
+    worker = Object.const_get($1)
+  when /^(.*)=(\d+)$/
+    config[$1.to_sym] = $2.to_i
+  when /^(.*)=(.*)$/
+    config[$1.to_sym] = $2
+  else
+    raise "Unknown parameter: [#{arg}]"
+  end
+end
+sv = Supervisor.new(server, worker, config)
+s = sv.create_server(nil)
+s.install_signal_handlers
+t = Thread.new{ s.main }
+s.after_start
+t.join
+      end_of_script
     end
   end
 end
@@ -25,6 +60,20 @@ end
 def windows_daemon_cmdline
   if ServerEngine.windows?
     [ServerEngine.ruby_bin_path, '-I', File.dirname(__FILE__), 'tmp/daemon.rb']
+  else
+    nil
+  end
+end
+
+def windows_supervisor_cmdline(server = nil, worker = nil, config = {})
+  if ServerEngine.windows?
+    cmd = [ServerEngine.ruby_bin_path, '-I', File.dirname(__FILE__), 'tmp/supervisor.rb']
+    cmd << "server=#{server}" if server
+    cmd << "worker=#{worker}" if worker
+    config.each_pair do |k, v|
+      cmd << "#{k}=#{v}"
+    end
+    cmd
   else
     nil
   end
@@ -129,6 +178,13 @@ module TestWorker
 
   def after_start
     incr_test_state :worker_after_start
+  end
+end
+
+module RunErrorWorker
+  def run
+    incr_test_state :worker_run
+    raise StandardError, "error test"
   end
 end
 
