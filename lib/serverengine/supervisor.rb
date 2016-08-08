@@ -46,6 +46,12 @@ module ServerEngine
       @disable_reload = !!@config[:disable_reload]
 
       @command_pipe = @config.fetch(:command_pipe, nil)
+
+      if @config.fetch(:command_sender, "signal") == "pipe"
+        extend CommandSender::Pipe
+      else
+        extend CommandSender::Signal
+      end
     end
 
     # server is available after start_server() call.
@@ -97,33 +103,32 @@ module ServerEngine
       @server = @create_server_proc.call(@load_config_proc, logger)
     end
 
-    def _stop(stop_graceful)
-      if @command_pipe
-        @command_pipe.write stop_graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n" rescue nil
-        @command_pipe.close
-        @command_pipe = nil
-      else
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+    def stop_internal(stop_graceful)
+      begin
+        _stop(stop_graceful)
+      rescue Errno::EPIPE
+        # nothing to do
+      ensure
+        if @command_pipe
+          @command_pipe.close
+          @command_pipe = nil
+        end
       end
     end
-    private :_stop
+    private :stop_internal
 
     def stop(stop_graceful)
       @stop = true
-      _stop(stop_graceful)
+      stop_internal(stop_graceful)
     end
 
     def restart(stop_graceful)
       reload_config
       @logger.reopen! if @logger
       if @restart_server_process
-        _stop(stop_graceful)
+        stop_internal(stop_graceful)
       else
-        if @command_pipe
-          @command_pipe.write stop_graceful ? "GRACEFUL_RESTART\n" : "IMMEDIATE_RESTART\n"
-        else
-          send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_RESTART : Daemon::Signals::IMMEDIATE_RESTART)
-        end
+        _restart(stop_graceful)
       end
     end
 
@@ -132,11 +137,7 @@ module ServerEngine
         reload_config
       end
       @logger.reopen! if @logger
-      if @command_pipe
-        @command_pipe.write "RELOAD\n"
-      else
-        send_signal(Daemon::Signals::RELOAD)
-      end
+      _reload
     end
 
     def detach(stop_graceful)

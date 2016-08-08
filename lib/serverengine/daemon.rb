@@ -227,6 +227,26 @@ module ServerEngine
       return 0
     end
 
+    def stop(graceful)
+      _stop(graceful)
+    end
+
+    def restart(graceful)
+      _restart(graceful)
+    end
+
+    def reload
+      _reload
+    end
+
+    def detach
+      _detach
+    end
+
+    def dump
+      _dump
+    end
+
     private
 
     def create_server(logger)
