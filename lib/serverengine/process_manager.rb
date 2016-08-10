@@ -51,6 +51,8 @@ module ServerEngine
         raise ArgumentError, "unexpected :on_heartbeat_error option (expected Proc, true or false but got #{op.class})"
       end
 
+      @command_sender = config.fetch(:command_sender, "signal")
+
       configure(config)
 
       @closed = false
@@ -68,6 +70,9 @@ module ServerEngine
     attr_reader :graceful_kill_signal, :immediate_kill_signal
     attr_reader :auto_tick, :auto_tick_interval
     attr_reader :enable_heartbeat, :auto_heartbeat
+
+    attr_accessor :command_sender
+    attr_reader :command_pipe
 
     CONFIG_PARAMS = {
       heartbeat_interval: 1,
@@ -161,7 +166,16 @@ module ServerEngine
           end
         end
 
+        if @command_sender == "pipe"
+          inpipe, @command_pipe = IO.pipe
+          @command_pipe.sync = true
+          @command_pipe.binmode
+          options[:in] = inpipe
+        end
         pid = Process.spawn(env, *args, options)
+        if @command_sender == "pipe"
+          inpipe.close
+        end
 
         m = Monitor.new(self, pid)
 

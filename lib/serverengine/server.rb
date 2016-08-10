@@ -32,6 +32,7 @@ module ServerEngine
       @log_stdout = false if logdev_from_config(@config) == STDOUT
       @log_stderr = false if logdev_from_config(@config) == STDERR
 
+      @command_sender = @config.fetch(:command_sender, "signal")
       @command_pipe = @config.fetch(:command_pipe, nil)
     end
 

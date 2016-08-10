@@ -38,6 +38,14 @@ module ServerEngine
       super(worker_module, load_config_proc, &block)
 
       @reload_signal = @config[:worker_reload_signal]
+      @pm.command_sender = @command_sender
+    end
+
+    def stop(stop_graceful)
+      if @command_sender == "pipe"
+        @pm.command_pipe.write stop_graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n"
+      end
+      super
     end
 
     def run
