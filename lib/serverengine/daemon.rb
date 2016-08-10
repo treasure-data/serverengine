@@ -47,6 +47,8 @@ module ServerEngine
       @chuser = @config[:chuser]
       @chgroup = @config[:chgroup]
       @chumask = @config[:chumask]
+
+      @pid = nil
     end
 
     # server is available when run() is called. It is a Supervisor instance if supervisor is set to true. Otherwise a Server instance.
@@ -54,7 +56,7 @@ module ServerEngine
 
     module Signals
       GRACEFUL_STOP = :TERM
-      IMMEDIATE_STOP = :QUIT
+      IMMEDIATE_STOP = ServerEngine::windows? ? :KILL : :QUIT
       GRACEFUL_RESTART = :USR1
       IMMEDIATE_RESTART = :HUP
       RELOAD = :USR2
@@ -138,7 +140,7 @@ module ServerEngine
       rpipe = nil
       if ServerEngine.windows?
         windows_daemon_cmdline = config[:windows_daemon_cmdline]
-        pid = Process.spawn(*Array(windows_daemon_cmdline))
+        @pid = Process.spawn(*Array(windows_daemon_cmdline))
       else
         rpipe, wpipe = IO.pipe
         wpipe.sync = true
@@ -177,12 +179,12 @@ module ServerEngine
 
         wpipe.close
 
-        pid = rpipe.gets.to_i
+        @pid = rpipe.gets.to_i
       end
 
       if @pid_path
         File.open(@pid_path, "w") {|f|
-          f.write "#{pid}\n"
+          f.write "#{@pid}\n"
         }
       end
 
@@ -194,6 +196,26 @@ module ServerEngine
       end
 
       return 0
+    end
+
+    def stop(graceful)
+      Process.kill(!ServerEngine.windows? && graceful ? Signals::GRACEFUL_STOP : Signals::IMMEDIATE_STOP, @pid)
+    end
+
+    def restart(graceful)
+      Process.kill(graceful ? Signals::GRACEFUL_RESTART : Signals::IMMEDIATE_RESTART, @pid)
+    end
+
+    def reload
+      Process.kill(Signals::RELOAD, @pid)
+    end
+
+    def detach
+      Process.kill(Signals::DETACH, @pid)
+    end
+
+    def dump
+      Process.kill(Signals::DUMP, @pid)
     end
 
     private
