@@ -97,18 +97,33 @@ module ServerEngine
       @server = @create_server_proc.call(@load_config_proc, logger)
     end
 
+    def _stop(stop_graceful)
+      if @command_pipe
+        @command_pipe.write stop_graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n" rescue nil
+        @command_pipe.close
+        @command_pipe = nil
+      else
+        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+      end
+    end
+    private :_stop
+
     def stop(stop_graceful)
       @stop = true
-      send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+      _stop(stop_graceful)
     end
 
     def restart(stop_graceful)
       reload_config
       @logger.reopen! if @logger
       if @restart_server_process
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+        _stop(stop_graceful)
       else
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_RESTART : Daemon::Signals::IMMEDIATE_RESTART)
+        if @command_pipe
+          @command_pipe.write stop_graceful ? "GRACEFUL_RESTART\n" : "IMMEDIATE_RESTART\n"
+        else
+          send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_RESTART : Daemon::Signals::IMMEDIATE_RESTART)
+        end
       end
     end
 
@@ -117,13 +132,17 @@ module ServerEngine
         reload_config
       end
       @logger.reopen! if @logger
-      send_signal(Daemon::Signals::RELOAD)
+      if @command_pipe
+        @command_pipe.write "RELOAD\n"
+      else
+        send_signal(Daemon::Signals::RELOAD)
+      end
     end
 
     def detach(stop_graceful)
       if @enable_detach
         @detach_flag.set!
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+        _stop(stop_graceful)
       else
         stop(stop_graceful)
       end
@@ -219,20 +238,29 @@ module ServerEngine
     end
 
     def start_server
-      s = create_server(logger)
-      @last_start_time = Time.now
+      unless ServerEngine.windows?
+        s = create_server(logger)
+        @last_start_time = Time.now
 
-      begin
-        m = @pm.fork do
-          $0 = @server_process_name if @server_process_name
-          s.install_signal_handlers
+        begin
+          m = @pm.fork do
+            $0 = @server_process_name if @server_process_name
+            s.install_signal_handlers
 
-          s.main
+            s.main
+          end
+
+          return m
+        ensure
+          s.after_start
         end
+      else
+        inpipe, @command_pipe = IO.pipe
+        @last_start_time = Time.now
+        m = @pm.spawn(*Array(config[:windows_daemon_cmdline]), in: inpipe)
+        inpipe.close
 
         return m
-      ensure
-        s.after_start
       end
     end
 
