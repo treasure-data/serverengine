@@ -44,6 +44,8 @@ module ServerEngine
       @enable_detach = !!@config[:enable_detach]
       @exit_on_detach = !!@config[:exit_on_detach]
       @disable_reload = !!@config[:disable_reload]
+
+      @command_pipe = @config.fetch(:command_pipe, nil)
     end
 
     # server is available after start_server() call.
@@ -129,14 +131,37 @@ module ServerEngine
 
     def install_signal_handlers
       s = self
-      SignalThread.new do |st|
-        st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
-        st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
-        st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
-        st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
-        st.trap(Daemon::Signals::RELOAD) { s.reload }
-        st.trap(Daemon::Signals::DETACH) { s.detach(true) }
-        st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+      if @command_pipe
+        Thread.new do
+          until @command_pipe.closed?
+            case @command_pipe.gets.chomp
+            when "GRACEFUL_STOP"
+              s.stop(true)
+            when "IMMEDIATE_STOP"
+              s.stop(false)
+            when "GRACEFUL_RESTART"
+              s.restart(true)
+            when "IMMEDIATE_RESTART"
+              s.restart(false)
+            when "RELOAD"
+              s.reload
+            when "DETACH"
+              s.detach(true)
+            when "DUMP"
+              Sigdump.dump
+            end
+          end
+        end
+      else
+        SignalThread.new do |st|
+          st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
+          st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
+          st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
+          st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
+          st.trap(Daemon::Signals::RELOAD) { s.reload }
+          st.trap(Daemon::Signals::DETACH) { s.detach(true) }
+          st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+        end
       end
     end
 

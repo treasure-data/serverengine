@@ -42,6 +42,25 @@ module ServerEngine
 
     module Pipe
       # requires @command_pipe
+      def stop(graceful)
+        @command_pipe.write graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n"
+      end
+
+      def restart(graceful)
+        @command_pipe.write graceful ? "GRACEFUL_RESTART\n" : "IMMEDIATE_RESTART\n"
+      end
+
+      def reload
+        @command_pipe.write "RELOAD\n"
+      end
+
+      def detach
+        @command_pipe.write "DETACH\n"
+      end
+
+      def dump
+        @command_pipe.write "DUMP\n"
+      end
     end
   end
 end
