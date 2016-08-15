@@ -54,8 +54,9 @@ module ServerEngine
 
   def self.ruby_bin_path
     if ServerEngine.windows?
+      require 'windows/library'
       ruby_path = "\0" * 256
-      GetModuleFileName.call(0, ruby_path, 256)
+      Windows::Library.GetModuleFileName.call(0, ruby_path, 256)
       return ruby_path.rstrip.gsub(/\\/, '/')
     else
       return File.join(RbConfig::CONFIG["bindir"], RbConfig::CONFIG["RUBY_INSTALL_NAME"]) + RbConfig::CONFIG["EXEEXT"]

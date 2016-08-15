@@ -23,4 +23,8 @@ Gem::Specification.new do |gem|
 
   gem.add_development_dependency "rake", [">= 0.9.2"]
   gem.add_development_dependency "rspec", ["~> 2.13.0"]
+
+  if /mswin|mingw/ =~ RUBY_PLATFORM
+    gem.add_runtime_dependency("windows-pr", ["~> 1.2.5"])
+  end
 end
