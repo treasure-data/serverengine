@@ -255,7 +255,7 @@ module ServerEngine
         ensure
           s.after_start
         end
-      else
+      else # if ServerEngine.windows?
         inpipe, @command_pipe = IO.pipe
         @last_start_time = Time.now
         m = @pm.spawn(*Array(config[:windows_daemon_cmdline]), in: inpipe)
