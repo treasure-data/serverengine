@@ -110,7 +110,7 @@ module ServerEngine
         # nothing to do
       ensure
         if @command_pipe
-          @command_pipe.close
+          @command_pipe.close rescue nil
           @command_pipe = nil
         end
       end
