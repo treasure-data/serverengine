@@ -16,11 +16,13 @@
 #    limitations under the License.
 #
 
+require_relative 'winsock'
+
+require 'socket'
+require 'ipaddr'
+
 module ServerEngine
   module SocketManagerWin
-
-    require_relative 'winsock'
-
     module ClientModule
       private
 

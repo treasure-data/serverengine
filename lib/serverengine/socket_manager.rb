@@ -15,12 +15,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+
+require 'socket'
+require 'ipaddr'
+
+require 'serverengine/utils'
+
 module ServerEngine
   module SocketManager
-
-    require 'socket'
-    require 'ipaddr'
-
     class Client
       def initialize(path)
         @path = path
@@ -156,8 +158,6 @@ module ServerEngine
       data = peer.read(len)
       Marshal.load(data)
     end
-
-    require_relative 'utils'
 
     if ServerEngine.windows?
       require_relative 'socket_manager_win'

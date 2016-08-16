@@ -15,14 +15,23 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-module ServerEngine
 
+require 'serverengine/utils'
+require 'serverengine/signals'
+require 'serverengine/privilege'
+
+require 'serverengine/monitor'
+
+require 'serverengine/process_manager'
+require 'serverengine/multi_worker_server'
+
+module ServerEngine
   class MultiProcessServer < MultiWorkerServer
     def initialize(worker_module, load_config_proc={}, &block)
       @pm = ProcessManager.new(
         auto_tick: false,
-        graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
-        immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+        graceful_kill_signal: Signals::GRACEFUL_STOP,
+        immediate_kill_signal: Signals::IMMEDIATE_STOP,
         enable_heartbeat: true,
         auto_heartbeat: true,
         on_heartbeat_error: Proc.new do
@@ -70,7 +79,7 @@ module ServerEngine
           $0 = @worker_process_name % [wid] if @worker_process_name
           w.install_signal_handlers
 
-          Daemon.change_privilege(@chuser, @chgroup)
+          Privilege.change_privilege(@chuser, @chgroup)
           File.umask(@chumask) if @chumask
 
           ## recreate the logger created at Server#main
@@ -83,52 +92,11 @@ module ServerEngine
         w.after_start
       end
 
-      return WorkerMonitor.new(w, wid, pmon)
+      return Monitor::ProcessWorkerMonitor.new(w, wid, pmon)
     end
 
     def wait_tick
       @pm.tick(0.5)
     end
-
-    class WorkerMonitor
-      def initialize(worker, wid, pmon)
-        @worker = worker
-        @wid = wid
-        @pmon = pmon
-      end
-
-      def send_stop(stop_graceful)
-        @stop = true
-        if stop_graceful
-          @pmon.start_graceful_stop! if @pmon
-        else
-          @pmon.start_immediate_stop! if @pmon
-        end
-        nil
-      end
-
-      def send_reload
-        @pmon.send_signal(Daemon::Signals::RELOAD) if @pmon
-        nil
-      end
-
-      def join
-        @pmon.join if @pmon
-        nil
-      end
-
-      def alive?
-        return false unless @pmon
-
-        if stat = @pmon.try_join
-          @worker.logger.info "Worker #{@wid} finished#{@stop ? '' : ' unexpectedly'} with #{ProcessManager.format_join_status(stat)}"
-          @pmon = nil
-          return false
-        else
-          return true
-        end
-      end
-    end
   end
-
 end

@@ -15,6 +15,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+
+require 'serverengine/config_loader'
+require 'serverengine/blocking_flag'
+require 'serverengine/process_manager'
+
+require 'serverengine/embedded_server'
+require 'serverengine/multi_process_server'
+require 'serverengine/multi_thread_server'
+require 'serverengine/multi_spawn_server'
+
 module ServerEngine
 
   class Supervisor
@@ -29,8 +39,8 @@ module ServerEngine
 
       @pm = ProcessManager.new(
         auto_tick: false,
-        graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
-        immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+        graceful_kill_signal: Signals::GRACEFUL_STOP,
+        immediate_kill_signal: Signals::IMMEDIATE_STOP,
         enable_heartbeat: true,
         auto_heartbeat: true,
       )
@@ -97,16 +107,16 @@ module ServerEngine
 
     def stop(stop_graceful)
       @stop = true
-      send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+      send_signal(stop_graceful ? Signals::GRACEFUL_STOP : Signals::IMMEDIATE_STOP)
     end
 
     def restart(stop_graceful)
       reload_config
       @logger.reopen! if @logger
       if @restart_server_process
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+        send_signal(stop_graceful ? Signals::GRACEFUL_STOP : Signals::IMMEDIATE_STOP)
       else
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_RESTART : Daemon::Signals::IMMEDIATE_RESTART)
+        send_signal(stop_graceful ? Signals::GRACEFUL_RESTART : Signals::IMMEDIATE_RESTART)
       end
     end
 
@@ -115,13 +125,13 @@ module ServerEngine
         reload_config
       end
       @logger.reopen! if @logger
-      send_signal(Daemon::Signals::RELOAD)
+      send_signal(Signals::RELOAD)
     end
 
     def detach(stop_graceful)
       if @enable_detach
         @detach_flag.set!
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+        send_signal(stop_graceful ? Signals::GRACEFUL_STOP : Signals::IMMEDIATE_STOP)
       else
         stop(stop_graceful)
       end
@@ -130,13 +140,13 @@ module ServerEngine
     def install_signal_handlers
       s = self
       SignalThread.new do |st|
-        st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
-        st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
-        st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
-        st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
-        st.trap(Daemon::Signals::RELOAD) { s.reload }
-        st.trap(Daemon::Signals::DETACH) { s.detach(true) }
-        st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+        st.trap(Signals::GRACEFUL_STOP) { s.stop(true) }
+        st.trap(Signals::IMMEDIATE_STOP) { s.stop(false) }
+        st.trap(Signals::GRACEFUL_RESTART) { s.restart(true) }
+        st.trap(Signals::IMMEDIATE_RESTART) { s.restart(false) }
+        st.trap(Signals::RELOAD) { s.reload }
+        st.trap(Signals::DETACH) { s.detach(true) }
+        st.trap(Signals::DUMP) { Sigdump.dump }
       end
     end
 
@@ -226,7 +236,7 @@ module ServerEngine
         end
       end
 
-      return nil
+      nil
     end
   end
 

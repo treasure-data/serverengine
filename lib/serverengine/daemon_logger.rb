@@ -15,9 +15,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-module ServerEngine
 
-  require 'logger'
+require 'logger'
+
+module ServerEngine
 
   class ::Logger::LogDevice
     def reopen!

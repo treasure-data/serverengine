@@ -15,6 +15,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+
+require 'serverengine/signals'
+require 'serverengine/signal_thread'
+
 module ServerEngine
 
   class Worker
@@ -35,11 +39,11 @@ module ServerEngine
     end
 
     def run
-      raise NoMethodError, "Worker#run method is not implemented"
+      raise NotImplementedError, "Worker#run method is not implemented"
     end
 
     def spawn(process_manager)
-      raise NoMethodError, "Worker#spawn(process_manager) method is required for worker_type=spawn"
+      raise NotImplementedError, "Worker#spawn(process_manager) method is required for worker_type=spawn"
     end
 
     def stop
@@ -54,19 +58,19 @@ module ServerEngine
     def install_signal_handlers
       w = self
       SignalThread.new do |st|
-        st.trap(Daemon::Signals::GRACEFUL_STOP) { w.stop }
-        st.trap(Daemon::Signals::IMMEDIATE_STOP, 'SIG_DFL')
+        st.trap(Signals::GRACEFUL_STOP) { w.stop }
+        st.trap(Signals::IMMEDIATE_STOP, 'SIG_DFL')
 
-        st.trap(Daemon::Signals::GRACEFUL_RESTART) { w.stop }
-        st.trap(Daemon::Signals::IMMEDIATE_RESTART, 'SIG_DFL')
+        st.trap(Signals::GRACEFUL_RESTART) { w.stop }
+        st.trap(Signals::IMMEDIATE_RESTART, 'SIG_DFL')
 
-        st.trap(Daemon::Signals::RELOAD) {
+        st.trap(Signals::RELOAD) {
           w.logger.reopen!
           w.reload
         }
-        st.trap(Daemon::Signals::DETACH) { w.stop }
+        st.trap(Signals::DETACH) { w.stop }
 
-        st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+        st.trap(Signals::DUMP) { Sigdump.dump }
       end
     end
 
