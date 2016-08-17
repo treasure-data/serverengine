@@ -53,11 +53,11 @@ module ServerEngine
     module Pipe
       private
       def _stop(graceful)
-        @command_pipe.write graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n"
+        @command_pipe.write(graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n")
       end
 
       def _restart(graceful)
-        @command_pipe.write graceful ? "GRACEFUL_RESTART\n" : "IMMEDIATE_RESTART\n"
+        @command_pipe.write(graceful ? "GRACEFUL_RESTART\n" : "IMMEDIATE_RESTART\n")
       end
 
       def _reload
