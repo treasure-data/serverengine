@@ -47,7 +47,8 @@ module ServerEngine
 
       @command_pipe = @config.fetch(:command_pipe, nil)
 
-      if @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal") == "pipe"
+      @command_sender = @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal")
+      if @command_sender == "pipe"
         extend CommandSender::Pipe
       else
         extend CommandSender::Signal
@@ -225,6 +226,10 @@ module ServerEngine
     end
 
     def start_server
+      if @command_sender == "pipe"
+        inpipe, @command_pipe = IO.pipe
+      end
+
       unless ServerEngine.windows?
         s = create_server(logger)
         @last_start_time = Time.now
@@ -232,9 +237,16 @@ module ServerEngine
         begin
           m = @pm.fork do
             $0 = @server_process_name if @server_process_name
+            if @command_sender == "pipe"
+              @command_pipe.close
+              s.instance_variable_set(:@command_pipe, inpipe)
+            end
             s.install_signal_handlers
 
             s.main
+          end
+          if @command_sender == "pipe"
+            inpipe.close
           end
 
           return m
@@ -242,10 +254,15 @@ module ServerEngine
           s.after_start
         end
       else # if ServerEngine.windows?
-        inpipe, @command_pipe = IO.pipe
+        exconfig = {}
+        if @command_sender == "pipe"
+          exconfig[:in] = inpipe
+        end
         @last_start_time = Time.now
-        m = @pm.spawn(*Array(config[:windows_daemon_cmdline]), in: inpipe)
-        inpipe.close
+        m = @pm.spawn(*Array(config[:windows_daemon_cmdline]), exconfig)
+        if @command_sender == "pipe"
+          inpipe.close
+        end
 
         return m
       end
