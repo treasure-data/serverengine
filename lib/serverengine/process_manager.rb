@@ -51,8 +51,6 @@ module ServerEngine
         raise ArgumentError, "unexpected :on_heartbeat_error option (expected Proc, true or false but got #{op.class})"
       end
 
-      @command_sender = config.fetch(:command_sender, "signal")
-
       configure(config)
 
       @closed = false

@@ -5,7 +5,7 @@ describe ServerEngine::Daemon do
   it 'run and graceful stop by signal' do
     pending "not supported signal base commands on Windows" if ServerEngine.windows?
 
-    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid")
+    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", command_sender: "signal")
     dm.main
 
     wait_for_fork
@@ -26,7 +26,7 @@ describe ServerEngine::Daemon do
 
   it 'signals' do
     pending "not supported signal base commands on Windows" if ServerEngine.windows?
-    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid")
+    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", command_sender: "signal")
     dm.main
 
     wait_for_fork

@@ -47,7 +47,7 @@ module ServerEngine
 
       @command_pipe = @config.fetch(:command_pipe, nil)
 
-      if @config.fetch(:command_sender, "signal") == "pipe"
+      if @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal") == "pipe"
         extend CommandSender::Pipe
       else
         extend CommandSender::Signal

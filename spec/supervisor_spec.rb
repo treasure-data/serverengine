@@ -5,7 +5,6 @@ describe ServerEngine::Supervisor do
   def start_supervisor(worker = nil, config={})
     if ServerEngine.windows?
       config[:windows_daemon_cmdline] = windows_supervisor_cmdline(nil, worker, config)
-      config[:command_sender] = "pipe"
     end
     sv = Supervisor.new(TestServer, worker || TestWorker, config)
     t = Thread.new { sv.main }
@@ -16,7 +15,6 @@ describe ServerEngine::Supervisor do
   def start_daemon(config={})
     if ServerEngine.windows?
       config[:windows_daemon_cmdline] = windows_daemon_cmdline
-      config[:command_sender] = "pipe"
     end
     daemon = Daemon.new(nil, TestWorker, config)
     t = Thread.new { daemon.main }
