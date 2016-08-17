@@ -53,23 +53,34 @@ module ServerEngine
     module Pipe
       private
       def _stop(graceful)
-        @command_pipe.write(graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n")
+        begin
+          _send_command(graceful ? "GRACEFUL_STOP" : "IMMEDIATE_STOP")
+        rescue Errno::EPIPE
+          # already stopped, then nothing to do
+        ensure
+          @command_pipe.close rescue nil
+          @command_pipe = nil
+        end
       end
 
       def _restart(graceful)
-        @command_pipe.write(graceful ? "GRACEFUL_RESTART\n" : "IMMEDIATE_RESTART\n")
+        _send_command(graceful ? "GRACEFUL_RESTART" : "IMMEDIATE_RESTART")
       end
 
       def _reload
-        @command_pipe.write "RELOAD\n"
+        _send_command("RELOAD")
       end
 
       def _detach
-        @command_pipe.write "DETACH\n"
+        _send_command("DETACH")
       end
 
       def _dump
-        @command_pipe.write "DUMP\n"
+        _send_command("DUMP")
+      end
+
+      def _send_command(cmd)
+        @command_pipe.write cmd + "\n"
       end
     end
   end

@@ -103,30 +103,16 @@ module ServerEngine
       @server = @create_server_proc.call(@load_config_proc, logger)
     end
 
-    def stop_internal(stop_graceful)
-      begin
-        _stop(stop_graceful)
-      rescue Errno::EPIPE
-        # nothing to do
-      ensure
-        if @command_pipe
-          @command_pipe.close rescue nil
-          @command_pipe = nil
-        end
-      end
-    end
-    private :stop_internal
-
     def stop(stop_graceful)
       @stop = true
-      stop_internal(stop_graceful)
+      _stop(stop_graceful)
     end
 
     def restart(stop_graceful)
       reload_config
       @logger.reopen! if @logger
       if @restart_server_process
-        stop_internal(stop_graceful)
+        _stop(stop_graceful)
       else
         _restart(stop_graceful)
       end
