@@ -49,7 +49,7 @@ module ServerEngine
       end
     end
 
-    # requires @command_pipe
+    # requires @command_sender_pipe
     module Pipe
       private
       def _stop(graceful)
@@ -58,8 +58,8 @@ module ServerEngine
         rescue Errno::EPIPE
           # already stopped, then nothing to do
         ensure
-          @command_pipe.close rescue nil
-          @command_pipe = nil
+          @command_sender_pipe.close rescue nil
+          @command_sender_pipe = nil
         end
       end
 
@@ -80,7 +80,7 @@ module ServerEngine
       end
 
       def _send_command(cmd)
-        @command_pipe.write cmd + "\n"
+        @command_sender_pipe.write cmd + "\n"
       end
     end
   end

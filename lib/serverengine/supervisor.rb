@@ -227,7 +227,7 @@ module ServerEngine
 
     def start_server
       if @command_sender == "pipe"
-        inpipe, @command_pipe = IO.pipe
+        inpipe, @command_sender_pipe = IO.pipe
       end
 
       unless ServerEngine.windows?
@@ -238,7 +238,7 @@ module ServerEngine
           m = @pm.fork do
             $0 = @server_process_name if @server_process_name
             if @command_sender == "pipe"
-              @command_pipe.close
+              @command_sender_pipe.close
               s.instance_variable_set(:@command_pipe, inpipe)
             end
             s.install_signal_handlers

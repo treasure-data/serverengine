@@ -70,7 +70,7 @@ module ServerEngine
     attr_reader :enable_heartbeat, :auto_heartbeat
 
     attr_accessor :command_sender
-    attr_reader :command_pipe
+    attr_reader :command_sender_pipe
 
     CONFIG_PARAMS = {
       heartbeat_interval: 1,
@@ -165,9 +165,9 @@ module ServerEngine
         end
 
         if @command_sender == "pipe"
-          inpipe, @command_pipe = IO.pipe
-          @command_pipe.sync = true
-          @command_pipe.binmode
+          inpipe, @command_sender_pipe = IO.pipe
+          @command_sender_pipe.sync = true
+          @command_sender_pipe.binmode
           options[:in] = inpipe
         end
         pid = Process.spawn(env, *args, options)

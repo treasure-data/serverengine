@@ -139,9 +139,9 @@ module ServerEngine
     def main
       if @daemonize
         if @command_sender == "pipe"
-          inpipe, @command_pipe = IO.pipe
-          @command_pipe.sync = true
-          @command_pipe.binmode
+          inpipe, @command_sender_pipe = IO.pipe
+          @command_sender_pipe.sync = true
+          @command_sender_pipe.binmode
         end
 
         if ServerEngine.windows?
@@ -182,7 +182,7 @@ module ServerEngine
         begin
           rpipe.close
           if @command_sender == "pipe"
-            @command_pipe.close
+            @command_sender_pipe.close
           end
 
           Process.setsid
