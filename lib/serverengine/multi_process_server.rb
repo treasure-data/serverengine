@@ -125,7 +125,7 @@ module ServerEngine
         return false unless @pmon
 
         if stat = @pmon.try_join
-          @worker.logger.info "Worker #{@wid} finished#{@stop ? '' : ' unexpectedly'} with #{ProcessManager.format_join_status(stat)}"
+          @worker.logger.info "Worker #{@wid} finished#{@stop ? '' : ' unexpectedly'} with #{ServerEngine.format_join_status(stat)}"
           @pmon = nil
           return false
         else

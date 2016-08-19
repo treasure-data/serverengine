@@ -226,7 +226,7 @@ module ServerEngine
 
     def try_join
       if stat = @pmon.try_join
-        @logger.info "Server finished#{@stop ? '' : ' unexpectedly'} with #{ProcessManager.format_join_status(stat)}"
+        @logger.info "Server finished#{@stop ? '' : ' unexpectedly'} with #{ServerEngine.format_join_status(stat)}"
         @pmon = nil
         return stat
       else
