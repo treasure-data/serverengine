@@ -44,6 +44,15 @@ module ServerEngine
       @enable_detach = !!@config[:enable_detach]
       @exit_on_detach = !!@config[:exit_on_detach]
       @disable_reload = !!@config[:disable_reload]
+
+      @command_pipe = @config.fetch(:command_pipe, nil)
+
+      @command_sender = @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal")
+      if @command_sender == "pipe"
+        extend CommandSender::Pipe
+      else
+        extend CommandSender::Signal
+      end
     end
 
     # server is available after start_server() call.
@@ -97,16 +106,16 @@ module ServerEngine
 
     def stop(stop_graceful)
       @stop = true
-      send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+      _stop(stop_graceful)
     end
 
     def restart(stop_graceful)
       reload_config
       @logger.reopen! if @logger
       if @restart_server_process
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+        _stop(stop_graceful)
       else
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_RESTART : Daemon::Signals::IMMEDIATE_RESTART)
+        _restart(stop_graceful)
       end
     end
 
@@ -115,13 +124,13 @@ module ServerEngine
         reload_config
       end
       @logger.reopen! if @logger
-      send_signal(Daemon::Signals::RELOAD)
+      _reload
     end
 
     def detach(stop_graceful)
       if @enable_detach
         @detach_flag.set!
-        send_signal(stop_graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+        _stop(stop_graceful)
       else
         stop(stop_graceful)
       end
@@ -129,14 +138,37 @@ module ServerEngine
 
     def install_signal_handlers
       s = self
-      SignalThread.new do |st|
-        st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
-        st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
-        st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
-        st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
-        st.trap(Daemon::Signals::RELOAD) { s.reload }
-        st.trap(Daemon::Signals::DETACH) { s.detach(true) }
-        st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+      if @command_pipe
+        Thread.new do
+          until @command_pipe.closed?
+            case @command_pipe.gets.chomp
+            when "GRACEFUL_STOP"
+              s.stop(true)
+            when "IMMEDIATE_STOP"
+              s.stop(false)
+            when "GRACEFUL_RESTART"
+              s.restart(true)
+            when "IMMEDIATE_RESTART"
+              s.restart(false)
+            when "RELOAD"
+              s.reload
+            when "DETACH"
+              s.detach(true)
+            when "DUMP"
+              Sigdump.dump
+            end
+          end
+        end
+      else
+        SignalThread.new do |st|
+          st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
+          st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
+          st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
+          st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
+          st.trap(Daemon::Signals::RELOAD) { s.reload }
+          st.trap(Daemon::Signals::DETACH) { s.detach(true) }
+          st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+        end
       end
     end
 
@@ -194,20 +226,45 @@ module ServerEngine
     end
 
     def start_server
-      s = create_server(logger)
-      @last_start_time = Time.now
+      if @command_sender == "pipe"
+        inpipe, @command_sender_pipe = IO.pipe
+      end
 
-      begin
-        m = @pm.fork do
-          $0 = @server_process_name if @server_process_name
-          s.install_signal_handlers
+      unless ServerEngine.windows?
+        s = create_server(logger)
+        @last_start_time = Time.now
 
-          s.main
+        begin
+          m = @pm.fork do
+            $0 = @server_process_name if @server_process_name
+            if @command_sender == "pipe"
+              @command_sender_pipe.close
+              s.instance_variable_set(:@command_pipe, inpipe)
+            end
+            s.install_signal_handlers
+
+            s.main
+          end
+          if @command_sender == "pipe"
+            inpipe.close
+          end
+
+          return m
+        ensure
+          s.after_start
+        end
+      else # if ServerEngine.windows?
+        exconfig = {}
+        if @command_sender == "pipe"
+          exconfig[:in] = inpipe
+        end
+        @last_start_time = Time.now
+        m = @pm.spawn(*Array(config[:windows_daemon_cmdline]), exconfig)
+        if @command_sender == "pipe"
+          inpipe.close
         end
 
         return m
-      ensure
-        s.after_start
       end
     end
 

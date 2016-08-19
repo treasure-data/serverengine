@@ -47,6 +47,15 @@ module ServerEngine
       @chuser = @config[:chuser]
       @chgroup = @config[:chgroup]
       @chumask = @config[:chumask]
+
+      @pid = nil
+      @command_pipe = @config.fetch(:command_pipe, nil)
+      @command_sender = @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal")
+      if @command_sender == "pipe"
+        extend ServerEngine::CommandSender::Pipe
+      else
+        extend ServerEngine::CommandSender::Signal
+      end
     end
 
     # server is available when run() is called. It is a Supervisor instance if supervisor is set to true. Otherwise a Server instance.
@@ -54,7 +63,7 @@ module ServerEngine
 
     module Signals
       GRACEFUL_STOP = :TERM
-      IMMEDIATE_STOP = :QUIT
+      IMMEDIATE_STOP = ServerEngine::windows? ? :KILL : :QUIT
       GRACEFUL_RESTART = :USR1
       IMMEDIATE_RESTART = :HUP
       RELOAD = :USR2
@@ -128,72 +137,124 @@ module ServerEngine
     end
 
     def main
-      unless @daemonize
+      if @daemonize
+        if @command_sender == "pipe"
+          inpipe, @command_sender_pipe = IO.pipe
+          @command_sender_pipe.sync = true
+          @command_sender_pipe.binmode
+        end
+
+        if ServerEngine.windows?
+          ret = daemonize_with_spawn(inpipe)
+        else
+          ret = daemonize_with_double_fork(inpipe)
+        end
+
+        if @command_sender == "pipe"
+          inpipe.close
+        end
+        return ret
+      else
+        @pid = Process.pid
         s = create_server(create_logger)
         s.install_signal_handlers
         s.main
         return 0
       end
+    end
 
-      rpipe = nil
-      if ServerEngine.windows?
-        windows_daemon_cmdline = config[:windows_daemon_cmdline]
-        pid = Process.spawn(*Array(windows_daemon_cmdline))
-      else
-        rpipe, wpipe = IO.pipe
-        wpipe.sync = true
+    def daemonize_with_spawn(inpipe)
+      windows_daemon_cmdline = config[:windows_daemon_cmdline]
+      config = {}
+      if @command_sender == "pipe"
+        config[:in] = inpipe
+      end
+      @pid = Process.spawn(*Array(windows_daemon_cmdline), config)
 
-        Process.fork do
-          begin
-            rpipe.close
+      write_pid_file
+    end
 
-            Process.setsid
-            Process.fork do
-              $0 = @daemon_process_name if @daemon_process_name
-              wpipe.write "#{Process.pid}\n"
+    def daemonize_with_double_fork(inpipe)
+      rpipe, wpipe = IO.pipe
+      wpipe.sync = true
 
-              Daemon.change_privilege(@chuser, @chgroup)
-              File.umask(@chumask) if @chumask
+      Process.fork do
+        begin
+          rpipe.close
+          if @command_sender == "pipe"
+            @command_sender_pipe.close
+          end
 
-              s = create_server(create_logger)
+          Process.setsid
+          Process.fork do
+            $0 = @daemon_process_name if @daemon_process_name
+            wpipe.write "#{Process.pid}\n"
 
-              STDIN.reopen(File::NULL)
-              STDOUT.reopen(File::NULL, "wb")
-              STDERR.reopen(File::NULL, "wb")
+            Daemon.change_privilege(@chuser, @chgroup)
+            File.umask(@chumask) if @chumask
 
-              s.install_signal_handlers
-
-              wpipe.write "\n"
-              wpipe.close
-
-              s.main
+            s = create_server(create_logger)
+            if @command_sender == "pipe"
+              s.instance_variable_set(:@command_pipe, inpipe)
             end
 
-            exit 0
-          ensure
-            exit! @daemonize_error_exit_code
+            STDIN.reopen(File::NULL)
+            STDOUT.reopen(File::NULL, "wb")
+            STDERR.reopen(File::NULL, "wb")
+
+            s.install_signal_handlers
+
+            wpipe.write "\n"
+            wpipe.close
+
+            s.main
           end
-        end
 
-        wpipe.close
-
-        pid = rpipe.gets.to_i
-      end
-
-      if @pid_path
-        File.open(@pid_path, "w") {|f|
-          f.write "#{pid}\n"
-        }
-      end
-
-      unless ServerEngine.windows?
-        data = rpipe.read
-        if data != "\n"
-          return @daemonize_error_exit_code
+          exit 0
+        ensure
+          exit! @daemonize_error_exit_code
         end
       end
+
+      wpipe.close
+      @pid = rpipe.gets.to_i
+      rpipe.close
+
+      if data != "\n"
+        return @daemonize_error_exit_code
+      end
+
+      write_pid_file
 
       return 0
+    end
+
+    def write_pid_file
+      if @pid_path
+        File.open(@pid_path, "w") {|f|
+          f.write "#{@pid}\n"
+        }
+      end
+    end
+
+    def stop(graceful)
+      _stop(graceful)
+    end
+
+    def restart(graceful)
+      _restart(graceful)
+    end
+
+    def reload
+      _reload
+    end
+
+    def detach
+      _detach
+    end
+
+    def dump
+      _dump
     end
 
     private

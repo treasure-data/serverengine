@@ -69,6 +69,9 @@ module ServerEngine
     attr_reader :auto_tick, :auto_tick_interval
     attr_reader :enable_heartbeat, :auto_heartbeat
 
+    attr_accessor :command_sender
+    attr_reader :command_sender_pipe
+
     CONFIG_PARAMS = {
       heartbeat_interval: 1,
       heartbeat_timeout: 180,
@@ -161,7 +164,16 @@ module ServerEngine
           end
         end
 
+        if @command_sender == "pipe"
+          inpipe, @command_sender_pipe = IO.pipe
+          @command_sender_pipe.sync = true
+          @command_sender_pipe.binmode
+          options[:in] = inpipe
+        end
         pid = Process.spawn(env, *args, options)
+        if @command_sender == "pipe"
+          inpipe.close
+        end
 
         m = Monitor.new(self, pid)
 

@@ -68,7 +68,7 @@ se = ServerEngine.create(nil, MyWorker, {
 se.run
 ```
 
-Send `TERM` signal to kill the daemon. See also **Signals** section bellow for details.
+Send `TERM` signal (or `KILL` on Windows) to kill the daemon. See also **Signals** section bellow for details.
 
 
 ### Multiprocess server
@@ -141,6 +141,12 @@ ServerEngine provides **worker_type: "spawn"** for those platforms (This is stil
 
 What you need to implement at least to use worker_type: "spawn" is `def spawn(process_manager)` method. You will call `process_manager.spawn` at the method, where `spawn` is same with `Process.spawn` excepting return value.
 
+In addition, Windows does not support signals.  ServerEngine provides **command_sender: "pipe"** for Windows (and for other platforms, if you want to use it).
+When using **command_sender: "pipe"**, the child process have to handle commands sent from parent process via STDIN.
+On Windows, **command_sender: "pipe"** is default.
+
+You can call `Server#stop(stop_graceful)` and `Server#restart(stop_graceful)` instead of sending signals.
+
 ```ruby
 module MyWorker
   def spawn(process_manager)
@@ -155,8 +161,20 @@ module MyWorker
       logger = ServerEngine::DaemonLogger.new(conf[:log] || STDOUT, conf)
 
       @stop = false
-      trap(:SIGTERM) { @stop = true }
-      trap(:SIGINT) { @stop = true }
+      command_pipe = STDIN.dup
+      STDIN.reopen(File::NULL)
+      Thread.new do
+        until @stop
+          case command_pipe.gets.chomp
+          when "GRACEFUL_STOP"
+            @stop = true
+          when "IMMEDIATE_STOP"
+            @stop = true
+          when "GRACEFUL_RESTART", "IMMEDIATE_RESTART"
+            # do something...
+          end
+        end
+      end
 
       until @stop
         logger.info 'Awesome work!'
@@ -169,6 +187,7 @@ end
 
 se = ServerEngine.create(nil, MyWorker, {
   worker_type: 'spawn',
+  command_sender: 'pipe',
   log: 'myserver.log',
 })
 se.run
@@ -303,6 +322,10 @@ Send `USR2` signal to reload configuration file.
 
 Immediate shutdown and restart send SIGQUIT signal to worker processes which kills the processes.
 Graceful shutdown and restart call `Worker#stop` method and wait for completion of `Worker#run` method.
+
+Note that signals are not supported on Windows.
+You have to use piped command instead of signals on Windows.
+See also **Multiprocess server on Windows and JRuby platforms** section.
 
 
 ## Utilities
