@@ -15,9 +15,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-module ServerEngine
+require 'serverengine/command_sender'
+require 'serverengine/config_loader'
+require 'serverengine/supervisor'
 
-  require 'shellwords'
+module ServerEngine
 
   class Daemon
     include ConfigLoader

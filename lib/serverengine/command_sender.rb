@@ -15,6 +15,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/daemon'
+
 module ServerEngine
   module CommandSender
     # requires send_signal method or @pid

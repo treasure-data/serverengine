@@ -19,8 +19,6 @@ module ServerEngine
 
   class SignalThread < Thread
     def initialize(&block)
-      require 'thread'
-
       @handlers = {}
 
       @mutex = Mutex.new

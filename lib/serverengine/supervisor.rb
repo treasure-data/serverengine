@@ -15,6 +15,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/config_loader'
+require 'serverengine/blocking_flag'
+require 'serverengine/process_manager'
+require 'serverengine/command_sender'
+
+require 'serverengine/embedded_server'
+require 'serverengine/multi_process_server'
+require 'serverengine/multi_thread_server'
+require 'serverengine/multi_spawn_server'
+
 module ServerEngine
 
   class Supervisor
