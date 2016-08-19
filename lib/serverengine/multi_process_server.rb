@@ -15,6 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/signals'
 require 'serverengine/daemon'
 require 'serverengine/process_manager'
 require 'serverengine/multi_worker_server'
@@ -25,8 +26,8 @@ module ServerEngine
     def initialize(worker_module, load_config_proc={}, &block)
       @pm = ProcessManager.new(
         auto_tick: false,
-        graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
-        immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+        graceful_kill_signal: Signals::GRACEFUL_STOP,
+        immediate_kill_signal: Signals::IMMEDIATE_STOP,
         enable_heartbeat: true,
         auto_heartbeat: true,
         on_heartbeat_error: Proc.new do
@@ -112,7 +113,7 @@ module ServerEngine
       end
 
       def send_reload
-        @pmon.send_signal(Daemon::Signals::RELOAD) if @pmon
+        @pmon.send_signal(Signals::RELOAD) if @pmon
         nil
       end
 

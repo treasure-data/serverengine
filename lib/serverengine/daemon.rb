@@ -63,16 +63,6 @@ module ServerEngine
     # server is available when run() is called. It is a Supervisor instance if supervisor is set to true. Otherwise a Server instance.
     attr_reader :server
 
-    module Signals
-      GRACEFUL_STOP = :TERM
-      IMMEDIATE_STOP = ServerEngine::windows? ? :KILL : :QUIT
-      GRACEFUL_RESTART = :USR1
-      IMMEDIATE_RESTART = :HUP
-      RELOAD = :USR2
-      DETACH = :INT
-      DUMP = :CONT
-    end
-
     def self.get_etc_passwd(user)
       if user.to_i.to_s == user
         Etc.getpwuid(user.to_i)
