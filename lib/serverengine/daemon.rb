@@ -133,6 +133,8 @@ module ServerEngine
 
       s.install_signal_handlers
 
+      logger.debug "calling Server#main, pid:#{Process.pid}"
+
       s.main
     end
 
