@@ -16,6 +16,8 @@
 #    limitations under the License.
 #
 
+require 'serverengine/utils'
+
 module ServerEngine
   module Signals
     GRACEFUL_STOP = :TERM
