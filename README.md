@@ -411,6 +411,8 @@ se = ServerEngine.create(MyServer, MyWorker, {
 se.run
 ```
 
+See also [examples](https://github.com/fluent/serverengine/tree/master/examples).
+
 
 ## Module API
 
