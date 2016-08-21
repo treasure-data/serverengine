@@ -309,18 +309,18 @@ module ServerEngine
       def initialize(pid, opts={})
         @pid = pid
 
-        @enable_heartbeat = kwargs[:enable_heartbeat]
-        @heartbeat_timeout = kwargs[:heartbeat_timeout]
+        @enable_heartbeat = opts[:enable_heartbeat]
+        @heartbeat_timeout = opts[:heartbeat_timeout]
 
-        @graceful_kill_signal   = kwargs[:graceful_kill_signal]
-        @graceful_kill_timeout  = kwargs[:graceful_kill_timeout]
-        @graceful_kill_interval = kwargs[:graceful_kill_interval]
-        @graceful_kill_interval_increment = kwargs[:graceful_kill_interval_increment]
+        @graceful_kill_signal   = opts[:graceful_kill_signal]
+        @graceful_kill_timeout  = opts[:graceful_kill_timeout]
+        @graceful_kill_interval = opts[:graceful_kill_interval]
+        @graceful_kill_interval_increment = opts[:graceful_kill_interval_increment]
 
-        @immediate_kill_signal   = kwargs[:immediate_kill_signal]
-        @immediate_kill_timeout  = kwargs[:immediate_kill_timeout]
-        @immediate_kill_interval = kwargs[:immediate_kill_interval]
-        @immediate_kill_interval_increment = kwargs[:immediate_kill_interval_increment]
+        @immediate_kill_signal   = opts[:immediate_kill_signal]
+        @immediate_kill_timeout  = opts[:immediate_kill_timeout]
+        @immediate_kill_interval = opts[:immediate_kill_interval]
+        @immediate_kill_interval_increment = opts[:immediate_kill_interval_increment]
 
         @error = false
         @last_heartbeat_time = Time.now
