@@ -7,7 +7,7 @@
     it 'scale up' do
       pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEnigne::MultiProcessServer
 
-      config = {:workers => 2}
+      config = {workers: 2, log_stdout: false, log_stderr: false}
 
       s = impl_class.new(TestWorker) { config.dup }
       t = Thread.new { s.main }
@@ -35,7 +35,7 @@
     it 'scale down' do
       pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEnigne::MultiProcessServer
 
-      config = {:workers => 2}
+      config = {workers: 2, log_stdout: false, log_stderr: false}
 
       s = impl_class.new(TestWorker) { config.dup }
       t = Thread.new { s.main }
