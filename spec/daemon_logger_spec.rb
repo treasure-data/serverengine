@@ -4,8 +4,9 @@ describe ServerEngine::DaemonLogger do
   before { FileUtils.rm_rf("tmp") }
   before { FileUtils.mkdir_p("tmp") }
   before { FileUtils.rm_f("tmp/se1.log") }
-  before { FileUtils.rm_f Dir["tmp/se1.log.**"] }
   before { FileUtils.rm_f("tmp/se2.log") }
+  before { FileUtils.rm_f Dir["tmp/se3.log.**"] }
+  before { FileUtils.rm_f Dir["tmp/se4.log.**"] }
 
   subject { DaemonLogger.new("tmp/se1.log", level: 'trace') }
 
@@ -114,26 +115,27 @@ describe ServerEngine::DaemonLogger do
   end
 
   it 'rotation' do
-    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10000)
+    log = DaemonLogger.new("tmp/se3.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10000)
     # 100 bytes
     log.warn "test1"*20
-    File.exist?("tmp/se1.log").should == true
-    File.exist?("tmp/se1.log.0").should == false
+    File.exist?("tmp/se3.log").should == true
+    File.exist?("tmp/se3.log.0").should == false
 
     # 10000 bytes
     100.times { log.warn "test2"*20 }
-    File.exist?("tmp/se1.log").should == true
-    File.exist?("tmp/se1.log.0").should == true
-    File.read("tmp/se1.log.0") =~ /test2$/
+    File.exist?("tmp/se3.log").should == true
+    File.exist?("tmp/se3.log.0").should == true
+    File.read("tmp/se3.log.0") =~ /test2$/
 
     # 10000 bytes
     100.times { log.warn "test3"*20 }
-    File.exist?("tmp/se1.log").should == true
-    File.exist?("tmp/se1.log.1").should == true
-    File.exist?("tmp/se1.log.2").should == false
+    File.exist?("tmp/se3.log").should == true
+    File.exist?("tmp/se3.log.1").should == true
+    File.exist?("tmp/se3.log.2").should == false
 
     log.warn "test4"*20
-    File.read("tmp/se1.log.0") =~ /test5$/
+    File.read("tmp/se3.log").should =~ /test4$/
+    File.read("tmp/se3.log.0").should =~ /test3$/
   end
 
   it 'IO logger' do
@@ -149,7 +151,7 @@ describe ServerEngine::DaemonLogger do
   it 'inter-process locking on rotation' do
     pending "fork is not implemented in Windows" if ServerEngine.windows?
 
-    log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
+    log = DaemonLogger.new("tmp/se4.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
     r, w = IO.pipe
     $stderr = w # To capture #warn output in DaemonLogger
     pid1 = Process.fork do
