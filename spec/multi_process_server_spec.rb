@@ -5,7 +5,7 @@
     include_context 'test server and worker'
 
     it 'scale up' do
-      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEnigne::MultiProcessServer
+      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {workers: 2, log_stdout: false, log_stderr: false}
 
@@ -33,7 +33,7 @@
     end
 
     it 'scale down' do
-      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEnigne::MultiProcessServer
+      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {workers: 2, log_stdout: false, log_stderr: false}
 
