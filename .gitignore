@@ -1,3 +1,5 @@
 Gemfile.lock
 tmp/*
 pkg/*
+myserver.log
+myserver.pid
