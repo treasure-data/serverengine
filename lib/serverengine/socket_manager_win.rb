@@ -15,11 +15,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'socket'
+require 'ipaddr'
+
+require_relative 'winsock'
 
 module ServerEngine
   module SocketManagerWin
-
-    require_relative 'winsock'
 
     module ClientModule
       private

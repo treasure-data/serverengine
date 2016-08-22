@@ -15,6 +15,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/server'
+
 module ServerEngine
 
   class MultiWorkerServer < Server

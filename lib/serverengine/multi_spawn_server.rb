@@ -15,6 +15,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/daemon'
+require 'serverengine/process_manager'
+require 'serverengine/multi_worker_server'
+
 module ServerEngine
 
   class MultiSpawnServer < MultiWorkerServer
