@@ -1,13 +1,13 @@
-
 [ServerEngine::MultiThreadServer, ServerEngine::MultiProcessServer].each do |impl_class|
   # MultiProcessServer uses fork(2) internally, then it doesn't support Windows.
-  next if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
   describe impl_class do
     include_context 'test server and worker'
 
     it 'scale up' do
-      config = {:workers => 2}
+      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
+
+      config = {workers: 2, log_stdout: false, log_stderr: false}
 
       s = impl_class.new(TestWorker) { config.dup }
       t = Thread.new { s.main }
@@ -33,7 +33,9 @@
     end
 
     it 'scale down' do
-      config = {:workers => 2}
+      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
+
+      config = {workers: 2, log_stdout: false, log_stderr: false}
 
       s = impl_class.new(TestWorker) { config.dup }
       t = Thread.new { s.main }
@@ -60,4 +62,3 @@
 
   end
 end
-

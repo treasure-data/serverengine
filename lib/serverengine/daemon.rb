@@ -218,6 +218,7 @@ module ServerEngine
 
       wpipe.close
       @pid = rpipe.gets.to_i
+      data = rpipe.read
       rpipe.close
 
       if data != "\n"
