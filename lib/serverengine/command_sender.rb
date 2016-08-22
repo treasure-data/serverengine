@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-require 'serverengine/daemon'
+require 'serverengine/signals'
 
 module ServerEngine
   module CommandSender
@@ -23,23 +23,23 @@ module ServerEngine
     module Signal
       private
       def _stop(graceful)
-        _send_signal(!ServerEngine.windows? && graceful ? Daemon::Signals::GRACEFUL_STOP : Daemon::Signals::IMMEDIATE_STOP)
+        _send_signal(!ServerEngine.windows? && graceful ? Signals::GRACEFUL_STOP : Signals::IMMEDIATE_STOP)
       end
 
       def _restart(graceful)
-        _send_signal(graceful ? Daemon::Signals::GRACEFUL_RESTART : Daemon::Signals::IMMEDIATE_RESTART)
+        _send_signal(graceful ? Signals::GRACEFUL_RESTART : Signals::IMMEDIATE_RESTART)
       end
 
       def _reload
-        _send_signal(Daemon::Signals::RELOAD)
+        _send_signal(Signals::RELOAD)
       end
 
       def _detach
-        _send_signal(Daemon::Signals::DETACH)
+        _send_signal(Signals::DETACH)
       end
 
       def _dump
-        _send_signal(Daemon::Signals::DUMP)
+        _send_signal(Signals::DUMP)
       end
 
       def _send_signal(sig)

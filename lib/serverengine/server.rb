@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-require 'serverengine/daemon'
+require 'serverengine/signals'
 require 'serverengine/signal_thread'
 require 'serverengine/worker'
 
@@ -94,16 +94,16 @@ module ServerEngine
         end
       else
         SignalThread.new do |st|
-          st.trap(@config[:signal_graceful_stop] || Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
-          st.trap(@config[:signal_detach] || Daemon::Signals::DETACH) { s.stop(true) }
+          st.trap(@config[:signal_graceful_stop] || Signals::GRACEFUL_STOP) { s.stop(true) }
+          st.trap(@config[:signal_detach] || Signals::DETACH) { s.stop(true) }
           # Here disables signals excepting GRACEFUL_STOP == :SIGTERM because
           # only SIGTERM is available on all version of Windows.
           unless ServerEngine.windows?
-            st.trap(@config[:signal_immediate_stop] || Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
-            st.trap(@config[:signal_graceful_restart] || Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
-            st.trap(@config[:signal_immediate_restart] || Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
-            st.trap(@config[:signal_reload] || Daemon::Signals::RELOAD) { s.reload }
-            st.trap(@config[:signal_dump] || Daemon::Signals::DUMP) { Sigdump.dump }
+            st.trap(@config[:signal_immediate_stop] || Signals::IMMEDIATE_STOP) { s.stop(false) }
+            st.trap(@config[:signal_graceful_restart] || Signals::GRACEFUL_RESTART) { s.restart(true) }
+            st.trap(@config[:signal_immediate_restart] || Signals::IMMEDIATE_RESTART) { s.restart(false) }
+            st.trap(@config[:signal_reload] || Signals::RELOAD) { s.reload }
+            st.trap(@config[:signal_dump] || Signals::DUMP) { Sigdump.dump }
           end
         end
       end

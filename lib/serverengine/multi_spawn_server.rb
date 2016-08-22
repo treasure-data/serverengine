@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-require 'serverengine/daemon'
+require 'serverengine/signals'
 require 'serverengine/process_manager'
 require 'serverengine/multi_worker_server'
 
@@ -26,15 +26,15 @@ module ServerEngine
       if ServerEngine.windows?
         @pm = ProcessManager.new(
           auto_tick: false,
-          graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
+          graceful_kill_signal: Signals::GRACEFUL_STOP,
           immediate_kill_signal: false,
           enable_heartbeat: false,
         )
       else
         @pm = ProcessManager.new(
           auto_tick: false,
-          graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
-          immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+          graceful_kill_signal: Signals::GRACEFUL_STOP,
+          immediate_kill_signal: Signals::IMMEDIATE_STOP,
           enable_heartbeat: false,
         )
       end

@@ -15,8 +15,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/signals'
 require 'serverengine/signal_thread'
-require 'serverengine/daemon'
 
 module ServerEngine
 
@@ -57,19 +57,19 @@ module ServerEngine
     def install_signal_handlers
       w = self
       SignalThread.new do |st|
-        st.trap(Daemon::Signals::GRACEFUL_STOP) { w.stop }
-        st.trap(Daemon::Signals::IMMEDIATE_STOP, 'SIG_DFL')
+        st.trap(Signals::GRACEFUL_STOP) { w.stop }
+        st.trap(Signals::IMMEDIATE_STOP, 'SIG_DFL')
 
-        st.trap(Daemon::Signals::GRACEFUL_RESTART) { w.stop }
-        st.trap(Daemon::Signals::IMMEDIATE_RESTART, 'SIG_DFL')
+        st.trap(Signals::GRACEFUL_RESTART) { w.stop }
+        st.trap(Signals::IMMEDIATE_RESTART, 'SIG_DFL')
 
-        st.trap(Daemon::Signals::RELOAD) {
+        st.trap(Signals::RELOAD) {
           w.logger.reopen!
           w.reload
         }
-        st.trap(Daemon::Signals::DETACH) { w.stop }
+        st.trap(Signals::DETACH) { w.stop }
 
-        st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+        st.trap(Signals::DUMP) { Sigdump.dump }
       end
     end
 

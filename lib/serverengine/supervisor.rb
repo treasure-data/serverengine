@@ -19,6 +19,7 @@ require 'serverengine/config_loader'
 require 'serverengine/blocking_flag'
 require 'serverengine/process_manager'
 require 'serverengine/command_sender'
+require 'serverengine/signals'
 
 require 'serverengine/embedded_server'
 require 'serverengine/multi_process_server'
@@ -39,8 +40,8 @@ module ServerEngine
 
       @pm = ProcessManager.new(
         auto_tick: false,
-        graceful_kill_signal: Daemon::Signals::GRACEFUL_STOP,
-        immediate_kill_signal: Daemon::Signals::IMMEDIATE_STOP,
+        graceful_kill_signal: Signals::GRACEFUL_STOP,
+        immediate_kill_signal: Signals::IMMEDIATE_STOP,
         enable_heartbeat: true,
         auto_heartbeat: true,
       )
@@ -171,13 +172,13 @@ module ServerEngine
         end
       else
         SignalThread.new do |st|
-          st.trap(Daemon::Signals::GRACEFUL_STOP) { s.stop(true) }
-          st.trap(Daemon::Signals::IMMEDIATE_STOP) { s.stop(false) }
-          st.trap(Daemon::Signals::GRACEFUL_RESTART) { s.restart(true) }
-          st.trap(Daemon::Signals::IMMEDIATE_RESTART) { s.restart(false) }
-          st.trap(Daemon::Signals::RELOAD) { s.reload }
-          st.trap(Daemon::Signals::DETACH) { s.detach(true) }
-          st.trap(Daemon::Signals::DUMP) { Sigdump.dump }
+          st.trap(Signals::GRACEFUL_STOP) { s.stop(true) }
+          st.trap(Signals::IMMEDIATE_STOP) { s.stop(false) }
+          st.trap(Signals::GRACEFUL_RESTART) { s.restart(true) }
+          st.trap(Signals::IMMEDIATE_RESTART) { s.restart(false) }
+          st.trap(Signals::RELOAD) { s.reload }
+          st.trap(Signals::DETACH) { s.detach(true) }
+          st.trap(Signals::DUMP) { Sigdump.dump }
         end
       end
     end
