@@ -146,6 +146,8 @@ describe ServerEngine::DaemonLogger do
   end
 
   it 'inter-process locking on rotation' do
+    pending "fork is not implemented in Windows" if ServerEngine.windows?
+
     log = DaemonLogger.new("tmp/se1.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
     r, w = IO.pipe
     $stderr = w # To capture #warn output in DaemonLogger
