@@ -1,3 +1,12 @@
+2016-08-22 version 2.0.0:
+
+* Add windows-pr gem dependency to get ruby_bin_path correctly
+* Add command sender feature to use pipe to control workers for Windows
+* Delete MultiprocessLogDevice implementation to use Ruby's one always
+* Refactor modules and methods to clean internal file dependency
+* Add example script to run servers
+* Fix required Ruby version to 2.1 or later
+
 2016-05-19 version 1.6.4:
 
 * Refactor to delete some warnings
