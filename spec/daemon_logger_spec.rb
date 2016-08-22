@@ -1,6 +1,7 @@
 require 'stringio'
 
 describe ServerEngine::DaemonLogger do
+  before { FileUtils.rm_rf("tmp") }
   before { FileUtils.mkdir_p("tmp") }
   before { FileUtils.rm_f("tmp/se1.log") }
   before { FileUtils.rm_f Dir["tmp/se1.log.**"] }
