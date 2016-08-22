@@ -17,6 +17,7 @@
 #
 require 'serverengine/command_sender'
 require 'serverengine/config_loader'
+require 'serverengine/privilege'
 require 'serverengine/supervisor'
 
 module ServerEngine
@@ -63,41 +64,6 @@ module ServerEngine
     # server is available when run() is called. It is a Supervisor instance if supervisor is set to true. Otherwise a Server instance.
     attr_reader :server
 
-    def self.get_etc_passwd(user)
-      if user.to_i.to_s == user
-        Etc.getpwuid(user.to_i)
-      else
-        Etc.getpwnam(user)
-      end
-    end
-
-    def self.get_etc_group(group)
-      if group.to_i.to_s == group
-        Etc.getgrgid(group.to_i)
-      else
-        Etc.getgrnam(group)
-      end
-    end
-
-    def self.change_privilege(user, group)
-      if user
-        etc_pw = Daemon.get_etc_passwd(user)
-        user_groups = [etc_pw.gid]
-        Etc.setgrent
-        Etc.group { |gr| user_groups << gr.gid if gr.mem.include?(etc_pw.name) } # emulate 'id -G'
-
-        Process.groups = Process.groups | user_groups
-        Process::UID.change_privilege(etc_pw.uid)
-      end
-
-      if group
-        etc_group = Daemon.get_etc_group(group)
-        Process::GID.change_privilege(etc_group.gid)
-      end
-
-      nil
-    end
-
     def run
       begin
         exit main
@@ -114,7 +80,7 @@ module ServerEngine
     def server_main
       $0 = @daemon_process_name if @daemon_process_name
 
-      Daemon.change_privilege(@chuser, @chgroup)
+      Privilege.change(@chuser, @chgroup)
       File.umask(@chumask) if @chumask
 
       s = create_server(create_logger)
@@ -182,7 +148,7 @@ module ServerEngine
             $0 = @daemon_process_name if @daemon_process_name
             wpipe.write "#{Process.pid}\n"
 
-            Daemon.change_privilege(@chuser, @chgroup)
+            Privilege.change(@chuser, @chgroup)
             File.umask(@chumask) if @chumask
 
             s = create_server(create_logger)

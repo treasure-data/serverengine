@@ -19,6 +19,7 @@ require 'serverengine/signals'
 require 'serverengine/daemon'
 require 'serverengine/process_manager'
 require 'serverengine/multi_worker_server'
+require 'serverengine/privilege'
 
 module ServerEngine
 
@@ -75,7 +76,7 @@ module ServerEngine
           $0 = @worker_process_name % [wid] if @worker_process_name
           w.install_signal_handlers
 
-          Daemon.change_privilege(@chuser, @chgroup)
+          Privilege.change(@chuser, @chgroup)
           File.umask(@chumask) if @chumask
 
           ## recreate the logger created at Server#main
