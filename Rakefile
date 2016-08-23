@@ -21,6 +21,6 @@ namespace :build do
         Rake::Task["build"].execute
       end
     end
-	end
+  end
 end
 
