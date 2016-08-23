@@ -1,3 +1,14 @@
+2016-08-XX version 2.0.0:
+
+* Fix use of unavailable GetModuleFileName on Windows by replacing it with
+  windows-pr gem. ServerEngine depends on the gem as a new runtime dependency
+* serverengine loads files using require instead of autoload that
+  potentially cause LoadError inconsistently.
+* Internal symbol `ServerEngine::Daemon::Signals` is moved to
+  `ServerEngine::Signals`
+* Removed backward compatibility code for Ruby < 2.1.0 that adds workaround
+  for log rotation issue under multi-process environments.
+
 2016-05-19 version 1.6.4:
 
 * Refactor to delete some warnings
