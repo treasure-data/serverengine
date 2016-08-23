@@ -24,7 +24,14 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "rake", [">= 0.9.2"]
   gem.add_development_dependency "rspec", ["~> 2.13.0"]
 
-  if /mswin|mingw/ =~ RUBY_PLATFORM
+  gem.add_development_dependency 'rake-compiler-dock', ['~> 0.5.0']
+  gem.add_development_dependency 'rake-compiler', ['~> 0.9.4']
+
+  # build gem for a certain platform. see also Rakefile
+  fake_platform = ENV['GEM_BUILD_FAKE_PLATFORM'].to_s
+  gem.platform = fake_platform unless fake_platform.empty?
+  if /mswin|mingw/ =~ fake_platform || (/mswin|mingw/ =~ RUBY_PLATFORM && fake_platform.empty?)
+    # windows dependencies
     gem.add_runtime_dependency("windows-pr", ["~> 1.2.5"])
   end
 end
