@@ -15,6 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/process_control'
 require 'serverengine/signals'
 require 'serverengine/signal_thread'
 require 'serverengine/worker'
@@ -36,9 +37,14 @@ module ServerEngine
       @log_stdout = false if logdev_from_config(@config) == STDOUT
       @log_stderr = false if logdev_from_config(@config) == STDERR
 
-      @command_sender = @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal")
-      @command_pipe = @config.fetch(:command_pipe, nil)
+      @control_pipe = @config[:control_pipe]
+
+      @signals = Signals.mapping(@config, prefix: 'server_')
     end
+
+    # Supervisor or Daemon overrides control_pipe after initialize
+    # if :process_control_type is pipe
+    attr_accessor :control_pipe
 
     def before_run
     end
@@ -70,42 +76,62 @@ module ServerEngine
     end
 
     def install_signal_handlers
-      s = self
-      if @command_pipe
+      Server.install_signal_handlers_to(self, @control_pipe, @signals)
+    end
+
+    def self.install_signal_handlers_to(s, control_pipe, signals)
+      if control_pipe
+        receiver = ProcessControl::PipeReceiver.new(control_pipe)
         Thread.new do
-          until @command_pipe.closed?
-            case @command_pipe.gets.chomp
-            when "GRACEFUL_STOP"
-              s.stop(true)
-            when "IMMEDIATE_STOP"
-              s.stop(false)
-            when "GRACEFUL_RESTART"
-              s.restart(true)
-            when "IMMEDIATE_RESTART"
-              s.restart(false)
-            when "RELOAD"
-              s.reload
-            when "DETACH"
-              s.detach(true)
-            when "DUMP"
-              Sigdump.dump
+          begin
+            receiver.each do |cmd|
+              case cmd
+              when ProcessControl::Commands::GRACEFUL_STOP
+                s.stop(true)
+              when ProcessControl::Commands::IMMEDIATE_STOP
+                s.stop(false)
+              when ProcessControl::Commands::GRACEFUL_RESTART
+                s.restart(true)
+              when ProcessControl::Commands::IMMEDIATE_RESTART
+                s.restart(false)
+              when ProcessControl::Commands::RELOAD
+                s.reload
+              when ProcessControl::Commands::DETACH
+                s.detach(true)
+              when ProcessControl::Commands::DUMP
+                Sigdump.dump
+              end
             end
+          ensure
+            receiver.close
           end
         end
       else
         SignalThread.new do |st|
-          st.trap(@config[:signal_graceful_stop] || Signals::GRACEFUL_STOP) { s.stop(true) }
-          st.trap(@config[:signal_detach] || Signals::DETACH) { s.stop(true) }
-          # Here disables signals excepting GRACEFUL_STOP == :SIGTERM because
-          # only SIGTERM is available on all version of Windows.
-          unless ServerEngine.windows?
-            st.trap(@config[:signal_immediate_stop] || Signals::IMMEDIATE_STOP) { s.stop(false) }
-            st.trap(@config[:signal_graceful_restart] || Signals::GRACEFUL_RESTART) { s.restart(true) }
-            st.trap(@config[:signal_immediate_restart] || Signals::IMMEDIATE_RESTART) { s.restart(false) }
-            st.trap(@config[:signal_reload] || Signals::RELOAD) { s.reload }
-            st.trap(@config[:signal_dump] || Signals::DUMP) { Sigdump.dump }
-          end
+          st.trap(signals[:graceful_stop]) { s.stop(true) } if signal_platform_support(signals[:graceful_stop])
+          st.trap(signals[:detach]) { s.detach(true) } if signal_platform_support(signals[:detach])
+          st.trap(signals[:immediate_stop]) { s.stop(false) } if signal_platform_support(signals[:immediate_stop])
+          st.trap(signals[:graceful_restart]) { s.restart(true) } if signal_platform_support(signals[:graceful_restart])
+          st.trap(signals[:immediate_restart]) { s.restart(false) } if signal_platform_support(signals[:immediate_restart])
+          st.trap(signals[:reload]) { s.reload } if signal_platform_support(signals[:reload])
+          st.trap(signals[:dump]) { Sigdump.dump } if signal_platform_support(signals[:dump])
         end
+      end
+    end
+
+    def self.signal_platform_support(name)
+      signal = Signals.normalized_name(name)
+      if ServerEngine.windows?
+        case signal
+        when "INT", "KILL"
+          true
+        when "TERM"
+          :self
+        else
+          false
+        end
+      else
+        Signal.list.has_key?(signal.to_s)
       end
     end
 

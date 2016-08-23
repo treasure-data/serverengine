@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-require 'serverengine/command_sender'
+require 'serverengine/process_control'
 require 'serverengine/config_loader'
 require 'serverengine/privilege'
 require 'serverengine/supervisor'
@@ -52,12 +52,21 @@ module ServerEngine
       @chumask = @config[:chumask]
 
       @pid = nil
-      @command_pipe = @config.fetch(:command_pipe, nil)
-      @command_sender = @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal")
-      if @command_sender == "pipe"
-        extend ServerEngine::CommandSender::Pipe
-      else
-        extend ServerEngine::CommandSender::Signal
+
+      server_signals = Signals.mapping(@config, prefix: 'server_')
+
+      @subprocess_controller = ProcessControl.new_sender(@config[:server_process_control_type], server_signals)
+
+      if @daemonize
+        @server_cmdline = @config[:server_cmdline]
+
+        if !Process.respond_to?(:fork) && !@server_cmdline
+          raise ArgumentError, ":server_cmdline option is required on Windows and JRuby platforms"
+        end
+
+        if @server_cmdline && @server_cmdline.is_a?(Array)
+          raise ArgumentError, ":server_cmdline must be an array of strings"
+        end
       end
     end
 
@@ -96,22 +105,21 @@ module ServerEngine
 
     def main
       if @daemonize
-        if @command_sender == "pipe"
-          inpipe, @command_sender_pipe = IO.pipe
-          @command_sender_pipe.sync = true
-          @command_sender_pipe.binmode
+        subproc_control_pipe = @subprocess_controller.pipe
+        begin
+          if @server_cmdline
+            ret = daemonize_with_spawn(subproc_control_pipe)
+          else
+            ret = daemonize_with_double_fork(subproc_control_pipe)
+          end
+          @subprocess_controller.pid = @pid
+
+          return ret
+
+        ensure
+          subproc_control_pipe.close if subproc_control_pipe
         end
 
-        if ServerEngine.windows?
-          ret = daemonize_with_spawn(inpipe)
-        else
-          ret = daemonize_with_double_fork(inpipe)
-        end
-
-        if @command_sender == "pipe"
-          inpipe.close
-        end
-        return ret
       else
         @pid = Process.pid
         s = create_server(create_logger)
@@ -121,27 +129,44 @@ module ServerEngine
       end
     end
 
-    def daemonize_with_spawn(inpipe)
-      windows_daemon_cmdline = config[:windows_daemon_cmdline]
-      config = {}
-      if @command_sender == "pipe"
-        config[:in] = inpipe
-      end
-      @pid = Process.spawn(*Array(windows_daemon_cmdline), config)
+    def stop(graceful)
+      @subprocess_controller.stop(graceful)
+    end
+
+    def restart(graceful)
+      @subprocess_controller.restart(graceful)
+    end
+
+    def reload
+      @subprocess_controller.reload
+    end
+
+    def detach
+      @subprocess_controller.detach
+    end
+
+    def dump
+      @subprocess_controller.dump
+    end
+
+    private
+
+    def daemonize_with_spawn(subproc_control_pipe)
+      options = {}
+      options[:in] = subproc_control_pipe if subproc_control_pipe
+      @pid = Process.spawn(@server_cmdline, options)
 
       write_pid_file
     end
 
-    def daemonize_with_double_fork(inpipe)
+    def daemonize_with_double_fork(subproc_control_pipe)
       rpipe, wpipe = IO.pipe
       wpipe.sync = true
 
       Process.fork do
         begin
           rpipe.close
-          if @command_sender == "pipe"
-            @command_sender_pipe.close
-          end
+          @subprocess_controller.close
 
           Process.setsid
           Process.fork do
@@ -152,9 +177,7 @@ module ServerEngine
             File.umask(@chumask) if @chumask
 
             s = create_server(create_logger)
-            if @command_sender == "pipe"
-              s.instance_variable_set(:@command_pipe, inpipe)
-            end
+            s.control_pipe = subproc_control_pipe if subproc_control_pipe
 
             STDIN.reopen(File::NULL)
             STDOUT.reopen(File::NULL, "wb")
@@ -195,28 +218,6 @@ module ServerEngine
         }
       end
     end
-
-    def stop(graceful)
-      _stop(graceful)
-    end
-
-    def restart(graceful)
-      _restart(graceful)
-    end
-
-    def reload
-      _reload
-    end
-
-    def detach
-      _detach
-    end
-
-    def dump
-      _dump
-    end
-
-    private
 
     def create_server(logger)
       @server = @create_server_proc.call(@load_config_proc, logger)

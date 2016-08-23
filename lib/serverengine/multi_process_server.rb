@@ -27,8 +27,6 @@ module ServerEngine
     def initialize(worker_module, load_config_proc={}, &block)
       @pm = ProcessManager.new(
         auto_tick: false,
-        graceful_kill_signal: Signals::GRACEFUL_STOP,
-        immediate_kill_signal: Signals::IMMEDIATE_STOP,
         enable_heartbeat: true,
         auto_heartbeat: true,
         on_heartbeat_error: Proc.new do
@@ -40,6 +38,11 @@ module ServerEngine
       super(worker_module, load_config_proc, &block)
 
       @worker_process_name = @config[:worker_process_name]
+
+      # TODO process_control_type: 'pipe' is not supported yet. Always
+      # uses signals regardless of the process_control_type option.
+      # Worker doesn't allow override of signals by config. unlike
+      # MultiSpawnServer or Supervisor, here doesn't need Signals.mapping.
     end
 
     def run

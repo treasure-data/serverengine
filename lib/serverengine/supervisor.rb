@@ -18,7 +18,7 @@
 require 'serverengine/config_loader'
 require 'serverengine/blocking_flag'
 require 'serverengine/process_manager'
-require 'serverengine/command_sender'
+require 'serverengine/process_control'
 require 'serverengine/signals'
 
 require 'serverengine/embedded_server'
@@ -40,8 +40,6 @@ module ServerEngine
 
       @pm = ProcessManager.new(
         auto_tick: false,
-        graceful_kill_signal: Signals::GRACEFUL_STOP,
-        immediate_kill_signal: Signals::IMMEDIATE_STOP,
         enable_heartbeat: true,
         auto_heartbeat: true,
       )
@@ -56,18 +54,29 @@ module ServerEngine
       @exit_on_detach = !!@config[:exit_on_detach]
       @disable_reload = !!@config[:disable_reload]
 
-      @command_pipe = @config.fetch(:command_pipe, nil)
+      @control_pipe = @config[:control_pipe]
 
-      @command_sender = @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal")
-      if @command_sender == "pipe"
-        extend CommandSender::Pipe
-      else
-        extend CommandSender::Signal
+      @server_signals = Signals.mapping(@config, prefix: 'server_')
+
+      @subprocess_controller = ProcessControl.new_sender(@config[:server_process_control_type], @server_signals)
+
+      @daemon_cmdline = @config[:daemon_cmdline]
+
+      if !Process.respond_to?(:fork) && !@daemon_cmdline
+        raise ArgumentError, ":daemon_cmdline option is required on Windows and JRuby platforms"
+      end
+
+      if @daemon_cmdline && @daemon_cmdline.is_a?(Array)
+        raise ArgumentError, ":daemon_cmdline must be an array of strings"
       end
     end
 
     # server is available after start_server() call.
     attr_reader :server
+
+    # Daemon overrides control_pipe after initialize
+    # if :server_process_control_type is pipe
+    attr_accessor :control_pipe
 
     def reload_config
       super
@@ -117,16 +126,16 @@ module ServerEngine
 
     def stop(stop_graceful)
       @stop = true
-      _stop(stop_graceful)
+      @subprocess_controller.stop(stop_graceful)
     end
 
     def restart(stop_graceful)
       reload_config
       @logger.reopen! if @logger
       if @restart_server_process
-        _stop(stop_graceful)
+        @subprocess_controller.stop(stop_graceful)
       else
-        _restart(stop_graceful)
+        @subprocess_controller.restart(stop_graceful)
       end
     end
 
@@ -135,59 +144,28 @@ module ServerEngine
         reload_config
       end
       @logger.reopen! if @logger
-      _reload
+      @subprocess_controller.reload
     end
 
     def detach(stop_graceful)
       if @enable_detach
         @detach_flag.set!
-        _stop(stop_graceful)
+        @subprocess_controller.stop(stop_graceful)
       else
         stop(stop_graceful)
       end
     end
 
     def install_signal_handlers
-      s = self
-      if @command_pipe
-        Thread.new do
-          until @command_pipe.closed?
-            case @command_pipe.gets.chomp
-            when "GRACEFUL_STOP"
-              s.stop(true)
-            when "IMMEDIATE_STOP"
-              s.stop(false)
-            when "GRACEFUL_RESTART"
-              s.restart(true)
-            when "IMMEDIATE_RESTART"
-              s.restart(false)
-            when "RELOAD"
-              s.reload
-            when "DETACH"
-              s.detach(true)
-            when "DUMP"
-              Sigdump.dump
-            end
-          end
-        end
-      else
-        SignalThread.new do |st|
-          st.trap(Signals::GRACEFUL_STOP) { s.stop(true) }
-          st.trap(Signals::IMMEDIATE_STOP) { s.stop(false) }
-          st.trap(Signals::GRACEFUL_RESTART) { s.restart(true) }
-          st.trap(Signals::IMMEDIATE_RESTART) { s.restart(false) }
-          st.trap(Signals::RELOAD) { s.reload }
-          st.trap(Signals::DETACH) { s.detach(true) }
-          st.trap(Signals::DUMP) { Sigdump.dump }
-        end
-      end
+      # supervisor and server implement same set of commands
+      Server.install_signal_handlers_to(self, @control_pipe, @server_signals)
     end
 
     def main
       # just in case Supervisor is not created by Daemon
       create_logger unless @logger
 
-      @pmon = start_server
+      start_server
 
       while true
         # keep the child process alive in this loop
@@ -197,7 +175,7 @@ module ServerEngine
 
             # child process died unexpectedly.
             # sleep @server_detach_wait sec and reboot process
-            @pmon = reboot_server
+            reboot_server
           end
         end
 
@@ -220,13 +198,10 @@ module ServerEngine
 
     private
 
-    def send_signal(sig)
-      @pmon.send_signal(sig) if @pmon
-      nil
-    end
-
     def try_join
-      if stat = @pmon.try_join
+      if @pmon.nil?
+        return true
+      elsif stat = @pmon.try_join
         @logger.info "Server finished#{@stop ? '' : ' unexpectedly'} with #{ServerEngine.format_join_status(stat)}"
         @pmon = nil
         return stat
@@ -237,45 +212,49 @@ module ServerEngine
     end
 
     def start_server
-      if @command_sender == "pipe"
-        inpipe, @command_sender_pipe = IO.pipe
+      subproc_control_pipe = @subprocess_controller.pipe
+      begin
+        @last_start_time = Time.now
+        if @daemon_cmdline
+          start_server_with_spawn(subproc_control_pipe)
+        else
+          start_server_with_fork(subproc_control_pipe)
+        end
+      ensure
+        subproc_control_pipe.close if subproc_control_pipe
       end
+    end
 
-      unless ServerEngine.windows?
-        s = create_server(logger)
-        @last_start_time = Time.now
+    def start_server_with_spawn(subproc_control_pipe)
+      options = {}
+      options[:in] = subproc_control_pipe if subproc_control_pipe
+      @pmon = @pm.spawn(*@daemon_cmdline, options)
+      @subprocess_controller.attach(@pmon)
+    end
 
-        begin
-          m = @pm.fork do
-            $0 = @server_process_name if @server_process_name
-            if @command_sender == "pipe"
-              @command_sender_pipe.close
-              s.instance_variable_set(:@command_pipe, inpipe)
-            end
-            s.install_signal_handlers
+    def start_server_with_fork(subproc_control_pipe)
+      s = create_server(logger)
 
-            s.main
-          end
-          if @command_sender == "pipe"
-            inpipe.close
-          end
+      begin
+        @pmon = @pm.fork do
+          $0 = @server_process_name if @server_process_name
 
-          return m
-        ensure
-          s.after_start
+          @subprocess_controller.close
+          s.control_pipe = subproc_control_pipe if subproc_control_pipe
+          s.install_signal_handlers
+
+          s.main
         end
-      else # if ServerEngine.windows?
-        exconfig = {}
-        if @command_sender == "pipe"
-          exconfig[:in] = inpipe
-        end
-        @last_start_time = Time.now
-        m = @pm.spawn(*Array(config[:windows_daemon_cmdline]), exconfig)
-        if @command_sender == "pipe"
-          inpipe.close
-        end
+        @subprocess_controller.attach(@pmon)
 
-        return m
+        # close pipe here so that s.after_start doesn't
+        # inherit it to forked subprocesses
+        subproc_control_pipe.close if subproc_control_pipe
+
+      ensure
+        # this may raise an exception. @pmon and @last_start_time
+        # should be set in advance.
+        s.after_start
       end
     end
 

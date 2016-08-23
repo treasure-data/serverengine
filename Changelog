@@ -1,3 +1,10 @@
+2016-XX-XX version 2.0.0:
+
+* Undocumented option :signal_NAME are removed (NAME is either of
+  graceful_stop, immediate_stop, graceful_restart, immediate_restart, reload,
+  and dump). Replacements are :server_NAME_signal options.
+
+
 2016-05-19 version 1.6.4:
 
 * Refactor to delete some warnings

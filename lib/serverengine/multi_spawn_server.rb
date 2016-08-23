@@ -15,6 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+require 'serverengine/process_control'
 require 'serverengine/signals'
 require 'serverengine/process_manager'
 require 'serverengine/multi_worker_server'
@@ -23,33 +24,23 @@ module ServerEngine
 
   class MultiSpawnServer < MultiWorkerServer
     def initialize(worker_module, load_config_proc={}, &block)
-      if ServerEngine.windows?
-        @pm = ProcessManager.new(
-          auto_tick: false,
-          graceful_kill_signal: Signals::GRACEFUL_STOP,
-          immediate_kill_signal: false,
-          enable_heartbeat: false,
-        )
-      else
-        @pm = ProcessManager.new(
-          auto_tick: false,
-          graceful_kill_signal: Signals::GRACEFUL_STOP,
-          immediate_kill_signal: Signals::IMMEDIATE_STOP,
-          enable_heartbeat: false,
-        )
-      end
+      @pm = ProcessManager.new(
+        auto_tick: false,
+        enable_heartbeat: false,
+      )
 
       super(worker_module, load_config_proc, &block)
 
-      @reload_signal = @config[:worker_reload_signal]
-      @pm.command_sender = @command_sender
-    end
+      # worker_process_control_type should have a consistent type independently from the platform
+      # because application needs to be changed.
+      type = @config.fetch(:worker_process_control_type, "signal")
+      @process_control_class = ProcessControl.sender_class(type)
 
-    def stop(stop_graceful)
-      if @command_sender == "pipe"
-        @pm.command_sender_pipe.write(stop_graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n")
-      end
-      super
+      @signals = Signals.mapping(@config, prefix: 'worker_')
+
+      # pmon.hooked_stdin is necessary at start_worker method when it creates
+      # ProcessControl::PipeSender instance.
+      @pm.hook_stdin = (@process_control_class <= ProcessControl::PipeSender)
     end
 
     def run
@@ -83,7 +74,8 @@ module ServerEngine
         w.after_start
       end
 
-      return WorkerMonitor.new(w, wid, pmon, @reload_signal)
+      subprocess_controller = @process_control_class.new(@signals, pmon)
+      return WorkerMonitor.new(w, wid, pmon, subprocess_controller)
     end
 
     def wait_tick
@@ -91,16 +83,17 @@ module ServerEngine
     end
 
     class WorkerMonitor < MultiProcessServer::WorkerMonitor
-      def initialize(worker, wid, pmon, reload_signal)
+      def initialize(worker, wid, pmon, subprocess_controller)
         super(worker, wid, pmon)
-        @reload_signal = reload_signal
+        @subprocess_controller = subprocess_controller
+      end
+
+      def send_stop(stop_graceful)
+        @subprocess_controller.stop(stop_graceful)
       end
 
       def send_reload
-        if @reload_signal
-          @pmon.send_signal(@reload_signal) if @pmon
-        end
-        nil
+        @subprocess_controller.reload
       end
     end
   end
