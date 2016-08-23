@@ -55,6 +55,38 @@ module ServerEngine
       end
     end
 
+    def kill(signal, pid, logger=nil)
+      if ServerEngine.windows?
+        sig = signal.to_s.sub(/^SIG/, '').to_sym
+        case sig
+        when :KILL
+          system("taskkill /f /pid #{pid}")
+          return true
+        when :QUIT
+          @logger.warn("SIG#{sig} is not supported on Windows platform. Force erminating process id=#{pid}") if @logger
+          system("taskkill /f /pid #{pid}")
+          return true
+        when :TERM, :INT
+          @logger.warn("SIG#{sig} is not supported on Windows platform. Terminating process id=#{pid}") if @logger
+          system("taskkill /pid #{pid}")
+          return true
+        when :USR1, :HUP, :USR2, :INT, :CONT
+          @logger.warn("SIG#{sig} is not supported on Windows platform. Signal is not sent.") if @logger
+          return true
+        else
+          # following Process.kill will raise platform-dependent exception
+        end
+      end
+
+      begin
+        Process.kill(signal, pid)
+        return true
+      rescue Errno::ECHILD
+        return false
+      rescue Errno::ESRCH
+        return false
+      end
+    end
   end
 
   extend ClassMethods

@@ -21,11 +21,32 @@ require 'serverengine/utils'
 module ServerEngine
   module Signals
     GRACEFUL_STOP = :TERM
-    IMMEDIATE_STOP = ServerEngine::windows? ? :KILL : :QUIT
+    IMMEDIATE_STOP = :QUIT
     GRACEFUL_RESTART = :USR1
     IMMEDIATE_RESTART = :HUP
     RELOAD = :USR2
     DETACH = :INT
     DUMP = :CONT
+
+    def self.mapping(config, opts={})
+      prefix = opts[:prefix]
+      {
+        graceful_stop: normalized_name(config[:"#{prefix}graceful_stop_signal"] || Signals::GRACEFUL_STOP),
+        immediate_stop: normalized_name(config[:"#{prefix}immediate_stop_signal"] || Signals::IMMEDIATE_STOP),
+        graceful_restart: normalized_name(config[:"#{prefix}graceful_restart_signal"] || Signals::GRACEFUL_RESTART),
+        immediate_restart: normalized_name(config[:"#{prefix}immediate_restart_signal"] || Signals::IMMEDIATE_RESTART),
+        reload: normalized_name(config[:"#{prefix}reload_signal"] || Signals::RELOAD),
+        detach: normalized_name(config[:"#{prefix}detach_signal"] || Signals::DETACH),
+        dump: normalized_name(config[:"#{prefix}dump_signal"] || Signals::DUMP),
+      }
+    end
+
+    def self.normalized_name(signal)
+      sig = signal.to_s.upcase
+      if sig[0,3] == "SIG"
+        sig = sig[3..-1]
+      end
+      return sig.to_sym
+    end
   end
 end

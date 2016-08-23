@@ -72,13 +72,13 @@ describe ServerEngine::Supervisor do
     end
   end
 
-  ['signal', 'pipe'].each do |sender|
-    context "when using #{sender} as command_sender" do
+  ['signal', 'pipe'].each do |control_type|
+    context "when using #{control_type} as worker_process_control_type" do
 
       it 'start and graceful stop' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        pending 'not supported on Windows' if ServerEngine.windows? && control_type == 'signal'
 
-        sv, t = start_supervisor(command_sender: sender)
+        sv, t = start_supervisor(worker_process_control_type: control_type)
 
         begin
           wait_for_fork
@@ -99,9 +99,9 @@ describe ServerEngine::Supervisor do
       end
 
       it 'immediate stop' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        pending 'not supported on Windows' if ServerEngine.windows? && control_type == 'signal'
 
-        sv, t = start_supervisor(command_sender: sender)
+        sv, t = start_supervisor(worker_process_control_type: control_type)
 
         begin
           wait_for_fork
@@ -117,9 +117,9 @@ describe ServerEngine::Supervisor do
       end
 
       it 'graceful restart' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        pending 'not supported on Windows' if ServerEngine.windows? && control_type == 'signal'
 
-        sv, t = start_supervisor(command_sender: sender)
+        sv, t = start_supervisor(worker_process_control_type: control_type)
 
         begin
           wait_for_fork
@@ -141,9 +141,9 @@ describe ServerEngine::Supervisor do
       end
 
       it 'immediate restart' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        pending 'not supported on Windows' if ServerEngine.windows? && control_type == 'signal'
 
-        sv, t = start_supervisor(command_sender: sender)
+        sv, t = start_supervisor(worker_process_control_type: control_type)
 
         begin
           wait_for_fork
@@ -165,9 +165,9 @@ describe ServerEngine::Supervisor do
       end
 
       it 'reload' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        pending 'not supported on Windows' if ServerEngine.windows? && control_type == 'signal'
 
-        sv, t = start_supervisor(command_sender: sender)
+        sv, t = start_supervisor(worker_process_control_type: control_type)
 
         begin
           wait_for_fork
@@ -186,9 +186,9 @@ describe ServerEngine::Supervisor do
       # TODO detach
 
       it 'auto restart in limited ratio' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        pending 'not supported on Windows' if ServerEngine.windows? && control_type == 'signal'
 
-        sv, t = start_supervisor(RunErrorWorker, server_restart_wait: 1, command_sender: sender)
+        sv, t = start_supervisor(RunErrorWorker, server_restart_wait: 1, worker_process_control_type: control_type)
 
         begin
           sleep 2.2

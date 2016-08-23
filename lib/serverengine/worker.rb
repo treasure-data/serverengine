@@ -56,6 +56,21 @@ module ServerEngine
 
     def install_signal_handlers
       w = self
+
+      # This method is called by MultiProcessServer classes. MultiSpawnServer is not
+      # a MultiProcessServer (it is a direct subclass of MultiWorkerServer).
+      #
+      # Only MultiSpawnServer allows override of signals by config. Thus here assumes
+      # hardcoded signals (Signals::*) only.
+      #
+      # Only MultiSpawnServer runs on Windows. Thus here doesn't check availability of
+      # signals using Signals.platform_support method.
+
+      # TODO MultiProcessServer is the parent process of workers and it doesn't support
+      # process_control_type: 'pipe' option yet. Instead, it always uses signals
+      # regardless of process_control_type option. Although it should be improved
+      # in the future, here doesn't need to handle @control_pipe for now.
+
       SignalThread.new do |st|
         st.trap(Signals::GRACEFUL_STOP) { w.stop }
         st.trap(Signals::IMMEDIATE_STOP, 'SIG_DFL')

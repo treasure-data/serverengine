@@ -16,6 +16,8 @@
 #    limitations under the License.
 #
 require 'fcntl'
+require 'serverengine/signals'
+require 'serverengine/utils'
 
 module ServerEngine
 
@@ -27,8 +29,8 @@ module ServerEngine
 
       @cloexec_mode = config[:cloexec_mode]
 
-      @graceful_kill_signal = config[:graceful_kill_signal] || :TERM
-      @immediate_kill_signal = config[:immediate_kill_signal] || :QUIT
+      @graceful_kill_signal = config[:graceful_kill_signal] || Signals::GRACEFUL_STOP
+      @immediate_kill_signal = config[:immediate_kill_signal] || Signals::IMMEDIATE_STOP
 
       @auto_tick = !!config.fetch(:auto_tick, true)
       @auto_tick_interval = config[:auto_tick_interval] || 1
@@ -65,12 +67,12 @@ module ServerEngine
 
     attr_accessor :cloexec_mode
 
-    attr_reader :graceful_kill_signal, :immediate_kill_signal
+    attr_accessor :graceful_kill_signal, :immediate_kill_signal
+
     attr_reader :auto_tick, :auto_tick_interval
     attr_reader :enable_heartbeat, :auto_heartbeat
 
-    attr_accessor :command_sender
-    attr_reader :command_sender_pipe
+    attr_accessor :hook_stdin
 
     CONFIG_PARAMS = {
       heartbeat_interval: 1,
@@ -101,6 +103,7 @@ module ServerEngine
 
     def monitor_options
       {
+        logger: @logger,
         enable_heartbeat: @enable_heartbeat,
         heartbeat_timeout: @heartbeat_timeout,
         graceful_kill_signal: @graceful_kill_signal,
@@ -121,14 +124,21 @@ module ServerEngine
 
       rpipe, wpipe = new_pipe_pair
 
+      if @hook_stdin
+        stdin_rpipe, stdin_wpipe = new_pipe_pair
+      end
+
       begin
         pid = Process.fork do
           self.close
+          stdin_wpipe.close if stdin_wpipe
           begin
             t = Target.new(wpipe)
             if @enable_heartbeat && @auto_heartbeat
               HeartbeatThread.new(@heartbeat_interval, t, @heartbeat_error_proc)
             end
+
+            STDIN.reopen(stdin_rpipe) if stdin_rpipe
 
             block.call(t)
             exit! 0
@@ -140,7 +150,9 @@ module ServerEngine
           end
         end
 
-        m = Monitor.new(pid, monitor_options)
+        m = Monitor.new(pid, monitor_options.merge({
+          hooked_stdin: stdin_wpipe,
+        }))
 
         @monitors << m
         @rpipes[rpipe] = m
@@ -151,6 +163,7 @@ module ServerEngine
       ensure
         wpipe.close
         rpipe.close if rpipe
+        stdin_rpipe if stdin_rpipe
       end
     end
 
@@ -167,6 +180,11 @@ module ServerEngine
         options = {}
       end
 
+      if @hook_stdin
+        stdin_rpipe, stdin_wpipe = new_pipe_pair
+        options[:in] = stdin_rpipe
+      end
+
       # pipe is necessary even if @enable_heartbeat == false because
       # parent process detects shutdown of a child process using it
       begin
@@ -179,18 +197,16 @@ module ServerEngine
           end
         end
 
-        if @command_sender == "pipe"
-          inpipe, @command_sender_pipe = IO.pipe
-          @command_sender_pipe.sync = true
-          @command_sender_pipe.binmode
-          options[:in] = inpipe
-        end
         pid = Process.spawn(env, *args, options)
-        if @command_sender == "pipe"
-          inpipe.close
-        end
 
-        m = Monitor.new(pid, monitor_options)
+        m = Monitor.new(pid, monitor_options.merge({
+          hooked_stdin: stdin_wpipe,
+        }))
+
+        if stdin_wpipe
+          stdin_wpipe.sync = true
+          stdin_wpipe.binmode
+        end
 
         @monitors << m
 
@@ -204,6 +220,7 @@ module ServerEngine
       ensure
         wpipe.close if wpipe
         rpipe.close if rpipe
+        stdin_rpipe.close if stdin_rpipe
       end
     end
 
@@ -287,6 +304,9 @@ module ServerEngine
       def initialize(pid, opts={})
         @pid = pid
 
+        @logger = opts[:logger]
+        @hooked_stdin = opts[:hooked_stdin]
+
         @enable_heartbeat = opts[:enable_heartbeat]
         @heartbeat_timeout = opts[:heartbeat_timeout]
 
@@ -308,24 +328,43 @@ module ServerEngine
         @kill_count = 0
       end
 
+      attr_accessor :kill_handler
+      attr_accessor :logger
+
       attr_accessor :last_heartbeat_time
       attr_reader :pid
+
+      attr_reader :hooked_stdin
 
       def heartbeat_delay
         now = Time.now
         now - @last_heartbeat_time
       end
 
-      def send_signal(sig)
+      def kill(type)
+        if @kill_handler
+          alive = @kill_handler.call(type, self)
+
+        else
+          case type
+          when :force
+            signal = :KILL
+          when :graceful
+            signal = @graceful_kill_signal
+          when :immediate
+            signal = @immediate_kill_signal
+          end
+          alive = send_signal(signal)
+        end
+
+        return alive
+      end
+
+      def send_signal(signal)
         pid = @pid
         return nil unless pid
 
-        begin
-          Process.kill(sig, pid)
-          return true
-        rescue #Errno::ECHILD, Errno::ESRCH, Errno::EPERM
-          return false
-        end
+        return ServerEngine.kill(signal, pid, @logger)
       end
 
       def try_join
@@ -341,6 +380,7 @@ module ServerEngine
         end
 
         if code
+          @hooked_stdin.close if @hooked_stdin
           @pid = nil
           return code
         end
@@ -359,6 +399,7 @@ module ServerEngine
           # assume that any errors mean the child process is dead
           code = $!
         end
+        @hooked_stdin.close if @hooked_stdin
         @pid = nil
 
         return code
@@ -377,8 +418,7 @@ module ServerEngine
       end
 
       def tick(now=Time.now)
-        pid = @pid
-        return false unless pid
+        return false unless @pid
 
         if !@immediate_kill_start_time
           # check heartbeat timeout or escalation
@@ -412,25 +452,20 @@ module ServerEngine
           if @immediate_kill_timeout >= 0 &&
               @immediate_kill_start_time <= now - @immediate_kill_timeout
             # escalate to SIGKILL
-            signal = :KILL
+            type = :force
           else
-            signal = @immediate_kill_signal
+            type = :immediate
           end
 
         else
-          signal = @graceful_kill_signal
+          type = :graceful
           interval = @graceful_kill_interval
           interval_incr = @graceful_kill_interval_increment
         end
 
-        begin
-          if ServerEngine.windows? && (signal == :KILL || signal == :SIGKILL)
-            system("taskkill /f /pid #{pid}")
-          else
-            Process.kill(signal, pid)
-          end
-        rescue #Errno::ECHILD, Errno::ESRCH, Errno::EPERM
-          # assume that any errors mean the child process is dead
+        alive = kill(type)
+        unless alive
+          @hooked_stdin.close if @hooked_stdin
           @pid = nil
           return false
         end

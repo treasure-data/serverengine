@@ -5,7 +5,7 @@ describe ServerEngine::Daemon do
   it 'run and graceful stop by signal' do
     pending "not supported signal base commands on Windows" if ServerEngine.windows?
 
-    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", command_sender: "signal")
+    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", process_control_type: "signal")
     dm.main
 
     wait_for_fork
@@ -26,7 +26,7 @@ describe ServerEngine::Daemon do
 
   it 'signals' do
     pending "not supported signal base commands on Windows" if ServerEngine.windows?
-    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", command_sender: "signal")
+    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", process_control_type: "signal")
     dm.main
 
     wait_for_fork
@@ -53,7 +53,7 @@ describe ServerEngine::Daemon do
   end
 
   it 'run and graceful stop by pipe' do
-    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", windows_daemon_cmdline: windows_daemon_cmdline, command_sender: "pipe")
+    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", windows_daemon_cmdline: windows_daemon_cmdline, process_control_type: "pipe")
     dm.main
 
     wait_for_fork
@@ -73,7 +73,7 @@ describe ServerEngine::Daemon do
   end
 
   it 'recieve commands from pipe' do
-    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", windows_daemon_cmdline: windows_daemon_cmdline, command_sender: "pipe")
+    dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", windows_daemon_cmdline: windows_daemon_cmdline, process_control_type: "pipe")
     dm.main
 
     wait_for_fork

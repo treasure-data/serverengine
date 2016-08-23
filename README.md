@@ -137,13 +137,11 @@ se.run
 ### Multiprocess server on Windows and JRuby platforms
 
 Above **worker_type: "process"** depends on `fork` system call, which doesn't work on Windows or JRuby platform.
-ServerEngine provides **worker_type: "spawn"** for those platforms (This is still EXPERIMENTAL). However, unfortunately, you need to implement different worker module because `worker_type: "spawn"` is not compatible with **worker_type: "process"** in terms of API.
+ServerEngine provides **worker_type: "spawn"** for those platforms. This type is not fully API compatible with the other types. You need to implement different worker module.
 
 What you need to implement at least to use worker_type: "spawn" is `def spawn(process_manager)` method. You will call `process_manager.spawn` at the method, where `spawn` is same with `Process.spawn` excepting return value.
 
-In addition, Windows does not support signals.  ServerEngine provides **command_sender: "pipe"** for Windows (and for other platforms, if you want to use it).
-When using **command_sender: "pipe"**, the child process have to handle commands sent from parent process via STDIN.
-On Windows, **command_sender: "pipe"** is default.
+In addition, Windows does not support signals. ServerEngine provides **worker_process_control_type: "pipe"** for Windows (and for other platforms, if you want to use it). When using **worker_process_control_type: "pipe"**, the child process have to handle commands sent from parent process via STDIN.
 
 You can call `Server#stop(stop_graceful)` and `Server#restart(stop_graceful)` instead of sending signals.
 
@@ -161,16 +159,17 @@ module MyWorker
       logger = ServerEngine::DaemonLogger.new(conf[:log] || STDOUT, conf)
 
       @stop = false
-      command_pipe = STDIN.dup
+      control_pipe = STDIN.dup
       STDIN.reopen(File::NULL)
+
       Thread.new do
         until @stop
-          case command_pipe.gets.chomp
+          case control_pipe.gets.chomp
           when "GRACEFUL_STOP"
             @stop = true
           when "IMMEDIATE_STOP"
             @stop = true
-          when "GRACEFUL_RESTART", "IMMEDIATE_RESTART"
+          when "RELOAD"
             # do something...
           end
         end
@@ -187,7 +186,7 @@ end
 
 se = ServerEngine.create(nil, MyWorker, {
   worker_type: 'spawn',
-  command_sender: 'pipe',
+  worker_process_control_type: 'pipe',
   log: 'myserver.log',
 })
 se.run
@@ -460,19 +459,29 @@ Available methods are different depending on `worker_type`. ServerEngine support
 
 - Daemon
   - **daemonize** enables daemonize (default: false)
+  - **server_cmdline** sets command-line to start the server process (e.g. `["ruby", __FILE__, "--foreground"]`). This is required on Windows and JRuby platforms because fork is not available (default: use fork).
   - **pid_path** sets the path to pid file (default: don't create pid file)
   - **supervisor** enables supervisor if it's true (default: false)
   - **daemon_process_name** changes process name ($0) of server or supervisor process
   - **chuser** changes execution user
   - **chgroup** changes execution group
   - **chumask** changes umask
-  - **daemonize_error_exit_code** exit code when daemonize, changing user or changing group fails (default: 1)
+  - **daemonize_error_exit_code** overrides exit code when daemonization failed because of failure of changing user, changing group, etc. (default: 1)
+  - **server_process_control_type** overrides the method to send control commands to supervisor and server. Setting "pipe" here uses STDIN to receive commands (default: "signal" on UNIX, "pipe" on Windows)
+  - **server_graceful_stop_signal**: overrides signal to stop the server gracefully if server_graceful_stop_signal is "signal" (default: "TERM")
+  - **server_immediate_stop_signal**: overrides signal to stop the server gracefully if server_graceful_stop_signal is "signal" (default: "QUIT")
+  - **server_graceful_restart_signal**: overrides signal to stop the server gracefully if server_graceful_stop_signal is "signal" (default: "USR1")
+  - **server_immediate_restart_signal**: overrides signal to stop the server gracefully if server_graceful_stop_signal is "signal" (default: "HUP")
+  - **server_reload_signal**: overrides signal to stop the server gracefully if server_graceful_stop_signal is "signal" (default: "USR2")
+  - **server_detach_signal**: overrides signal to stop the server gracefully if server_graceful_stop_signal is "signal" (default: "INT")
+  - **server_dump_signal**: overrides signal to stop the server gracefully if server_graceful_stop_signal is "signal" (default: "CONT")
 - Supervisor: available only when `supervisor` parameters is true
+  - **daemon_cmdline** sets command-line to start the daemon process (e.g. `["ruby", __FILE__, "--daemon"]`). This is required on Windows and JRuby platforms because fork is not available (default: use fork).
   - **server_process_name** changes process name ($0) of server process
-  - **restart_server_process** restarts server process when it receives USR1 or HUP signal. (default: false)
-  - **enable_detach** enables INT signal (default: true)
-  - **exit_on_detach** exits supervisor after detaching server process instead of restarting it (default: false)
-  - **disable_reload** disables USR2 signal (default: false)
+  - **restart_server_process** restarts server process when it receives a restart command (USR1 or HUP by signal, "GRACEFUL_RESTART" or "IMMEDIATE_RESTART" through stdin pipe). (default: false)
+  - **enable_detach** enables live detach (INT signal, or "DETACH" through stdin pipe) (default: true)
+  - **exit_on_detach** exits supervisor after live detaching server process instead of restarting it (default: false)
+  - **disable_reload** disables reload commands (USR2 signal, or "RELOAD" through stdin pipe) (default: false)
   - **server_restart_wait** sets wait time before restarting server after last restarting (default: 1.0) [dynamic reloadable]
   - **server_detach_wait** sets wait time before starting live restart (default: 10.0) [dynamic reloadable]
 - Multithread server and multiprocess server: available only when `worker_type` is thread or process
@@ -491,7 +500,10 @@ Available methods are different depending on `worker_type`. ServerEngine support
   - **worker_immediate_kill_timeout** sets promotion timeout from QUIT to KILL signal in seconds. -1 means no timeout (default: 600) [dynamic reloadable]
 - Multiprocess spawn server: available only when `worker_type` is "spawn"
   - all parameters of multiprocess server excepting worker_process_name
-  - **worker_reload_signal** sets the signal to notice configuration reload to a spawned process. Set nil to disable (default: nil)
+  - **worker_process_control_type** sets the method to send control commands to spawned process. Set "pipe" to use pipes. Signal doesn't work on Windows (default: "signal")
+  - **worker_graceful_stop_signal** sets the signal to notice graceful stop to a spawned process if worker_process_control_type is "signal" (default: "TERM")
+  - **worker_immediate_stop_signal** sets the signal to notice immediate stop reload to a spawned process if worker_process_control_type is "signal" (default: "QUIT")
+  - **worker_reload_signal** sets the signal to notice configuration reload to a spawned process if worker_process_control_type is "signal" (default: "USR2")
 - Logger
   - **log** sets path to log file. Set "-" for STDOUT (default: STDERR) [dynamic reloadable]
   - **log_level** log level: trace, debug, info, warn, error or fatal. (default: debug) [dynamic reloadable]
