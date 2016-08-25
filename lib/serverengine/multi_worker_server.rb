@@ -101,6 +101,10 @@ module ServerEngine
           # alive
           num_alive += 1
 
+        elsif m && !m.recoverable?
+          # exited, with unrecoverable exit code
+          # nothing to do: server will stop when all workers exited in this state
+
         elsif wid < @num_workers
           # scale up or reboot
           unless @stop
