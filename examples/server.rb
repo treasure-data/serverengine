@@ -7,6 +7,8 @@ require 'optparse'
 # bundle exec ruby example/server.rb [-t TYPE] [-w NUM]
 # available type of workers are: embedded(default), process, thread, spawn
 
+foreground = false
+supervisor = false
 worker_type = nil
 workers = 4
 exit_with_code = nil
@@ -16,6 +18,8 @@ stop_immediately_at_exit = false
 unrecoverable_exit_codes = []
 
 opt = OptionParser.new
+opt.on('-f'){ foreground = true }
+opt.on('-x'){ supervisor = true }
 opt.on('-t TYPE'){|v| worker_type = v }
 opt.on('-w NUM'){|v| workers = v.to_i }
 opt.on('-e NUM'){|v| exit_with_code = v.to_i }
@@ -110,8 +114,9 @@ module MySpawnWorker
 end
 
 opts = {
-  daemonize: true,
+  daemonize: !foreground,
   daemon_process_name: 'mydaemon',
+  supervisor: supervisor,
   log: 'myserver.log',
   pid_path: 'myserver.pid',
   worker_type: worker_type,
