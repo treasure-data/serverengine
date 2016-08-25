@@ -60,5 +60,52 @@
       test_state(:worker_stop).should == 3
     end
 
+    it 'raises SystemExit when all workers exit with specified code by unrecoverable_exit_codes' do
+      pending "unrecoverable_exit_codes supported only for multi process workers" if impl_class == ServerEngine::MultiThreadServer
+
+      config = {workers: 4, log_stdout: false, log_stderr: false, unrecoverable_exit_codes: [3, 4, 5]}
+
+      s = impl_class.new(TestExitWorker) { config.dup }
+      raised_error = nil
+      t = Thread.new do
+        begin
+          s.main
+        rescue SystemExit => e
+          raised_error = e
+        end
+      end
+
+      wait_for_fork
+      test_state(:worker_run).should == 4
+      t.join
+
+      test_state(:worker_stop).to_i.should == 0
+      raised_error.status.should == 3 # 4th process's exit status
+    end
+
+    it 'raises SystemExit immediately when a worker exits if stop_immediately_at_unrecoverable_exit specified' do
+      pending "unrecoverable_exit_codes supported only for multi process workers" if impl_class == ServerEngine::MultiThreadServer
+
+      config = {workers: 4, log_stdout: false, log_stderr: false, unrecoverable_exit_codes: [3, 4, 5], stop_immediately_at_unrecoverable_exit: true}
+
+      s = impl_class.new(TestExitWorker) { config.dup }
+      raised_error = nil
+      t = Thread.new do
+        begin
+          s.main
+        rescue SystemExit => e
+          raised_error = e
+        end
+      end
+
+      wait_for_fork
+      test_state(:worker_run).should == 4
+      t.join
+
+      test_state(:worker_stop).to_i.should == 3
+      test_state(:worker_finished).to_i.should == 3
+      raised_error.should_not be_nil
+      raised_error.status.should == 5 # 1st process's exit status
+    end
   end
 end
