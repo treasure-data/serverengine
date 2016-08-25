@@ -83,25 +83,11 @@ module ServerEngine
         w.after_start
       end
 
-      return WorkerMonitor.new(w, wid, pmon, @reload_signal)
+      return MultiProcessServer::WorkerMonitor.new(w, wid, pmon, @reload_signal)
     end
 
     def wait_tick
       @pm.tick(0.5)
-    end
-
-    class WorkerMonitor < MultiProcessServer::WorkerMonitor
-      def initialize(worker, wid, pmon, reload_signal)
-        super(worker, wid, pmon)
-        @reload_signal = reload_signal
-      end
-
-      def send_reload
-        if @reload_signal
-          @pmon.send_signal(@reload_signal) if @pmon
-        end
-        nil
-      end
     end
   end
 

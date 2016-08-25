@@ -97,10 +97,11 @@ module ServerEngine
     end
 
     class WorkerMonitor
-      def initialize(worker, wid, pmon)
+      def initialize(worker, wid, pmon, reload_signal = Signals::RELOAD)
         @worker = worker
         @wid = wid
         @pmon = pmon
+        @reload_signal = reload_signal
       end
 
       def send_stop(stop_graceful)
@@ -114,7 +115,7 @@ module ServerEngine
       end
 
       def send_reload
-        @pmon.send_signal(Signals::RELOAD) if @pmon
+        @pmon.send_signal(@reload_signal) if @pmon
         nil
       end
 
