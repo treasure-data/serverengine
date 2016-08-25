@@ -110,7 +110,8 @@ module ServerEngine
             # @stop is set by Server#stop
           end
           # server will stop when all workers exited in this state
-          @stop_status ||= m.exitstatus if m.exitstatus
+          # the last status will be used for server/supervisor/daemon
+          @stop_status = m.exitstatus if m.exitstatus
 
         elsif wid < @num_workers
           # scale up or reboot
