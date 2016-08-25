@@ -103,13 +103,14 @@ module ServerEngine
           # alive
           num_alive += 1
 
-        elsif m && !m.recoverable?
+        elsif m && m.respond_to?(:recoverable?) && !m.recoverable?
           # exited, with unrecoverable exit code
           if @stop_immediately_at_unrecoverable_exit
             stop(true) # graceful stop for workers
             # @stop is set by Server#stop
           end
           # server will stop when all workers exited in this state
+          @stop_status ||= m.exitstatus if m.exitstatus
 
         elsif wid < @num_workers
           # scale up or reboot

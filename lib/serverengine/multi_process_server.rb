@@ -105,7 +105,10 @@ module ServerEngine
         @reload_signal = reload_signal
         @unrecoverable_exit_codes = unrecoverable_exit_codes
         @unrecoverable_exit = false
+        @exitstatus = nil
       end
+
+      attr_reader :exitstatus
 
       def send_stop(stop_graceful)
         @stop = true
@@ -134,6 +137,7 @@ module ServerEngine
           @worker.logger.info "Worker #{@wid} finished#{@stop ? '' : ' unexpectedly'} with #{ServerEngine.format_join_status(stat)}"
           if stat.is_a?(Process::Status) && stat.exited? && @unrecoverable_exit_codes.include?(stat.exitstatus)
             @unrecoverable_exit = true
+            @exitstatus = stat.exitstatus
           end
           @pmon = nil
           return false
