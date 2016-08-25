@@ -11,6 +11,8 @@ worker_type = nil
 workers = 4
 exit_with_code = nil
 exit_at_seconds = 5
+exit_at_random = false
+stop_immediately_at_exit = false
 unrecoverable_exit_codes = []
 
 opt = OptionParser.new
@@ -18,12 +20,17 @@ opt.on('-t TYPE'){|v| worker_type = v }
 opt.on('-w NUM'){|v| workers = v.to_i }
 opt.on('-e NUM'){|v| exit_with_code = v.to_i }
 opt.on('-s NUM'){|v| exit_at_seconds = v.to_i }
+opt.on('-r'){ exit_at_random = true }
+opt.on('-i'){ stop_immediately_at_exit = true }
 opt.on('-u NUM'){|v| unrecoverable_exit_codes << v.to_i }
 opt.parse!(ARGV)
 
 if exit_with_code
   ENV['EXIT_WITH_CODE'] = exit_with_code.to_s
   ENV['EXIT_AT_SECONDS'] = exit_at_seconds.to_s
+  if exit_at_random
+    ENV['EXIT_AT_RANDOM'] = 'true'
+  end
 end
 
 module MyServer
@@ -49,6 +56,7 @@ module MyWorker
     @socket_manager = ServerEngine::SocketManager::Client.new(server.socket_manager_path)
     @exit_with_code = ENV.key?('EXIT_WITH_CODE') ? ENV['EXIT_WITH_CODE'].to_i : nil
     @exit_at_seconds = ENV.key?('EXIT_AT_SECONDS') ? ENV['EXIT_AT_SECONDS'].to_i : nil
+    @exit_at_random = ENV.key?('EXIT_AT_RANDOM')
   end
 
   def main
@@ -56,8 +64,9 @@ module MyWorker
     logger.info "Starting to run Worker."
     _listen_sock = @socket_manager.listen_tcp('0.0.0.0', 12345)
     stop_at = if @exit_with_code
-                logger.info "Stop #{@exit_at_seconds} seconds later with code #{@exit_with_code}."
-                Time.now + @exit_at_seconds
+                stop_seconds = @exit_at_random ? rand(@exit_at_seconds) : @exit_at_seconds
+                logger.info "Stop #{stop_seconds} seconds later with code #{@exit_with_code}."
+                Time.now + stop_seconds
               else
                 nil
               end
@@ -89,6 +98,9 @@ module MySpawnWorker
     if ENV['EXIT_WITH_CODE']
       env['EXIT_WITH_CODE'] = ENV['EXIT_WITH_CODE']
       env['EXIT_AT_SECONDS'] = ENV['EXIT_AT_SECONDS']
+      if ENV['EXIT_AT_RANDOM']
+        env['EXIT_AT_RANDOM'] = 'true'
+      end
     end
     process_manager.spawn(env, "ruby", File.expand_path("../spawn_worker_script.rb", __FILE__))
   rescue Exception => e
@@ -105,6 +117,9 @@ opts = {
   worker_type: worker_type,
   workers: workers,
 }
+if stop_immediately_at_exit
+  opts[:stop_immediately_at_unrecoverable_exit] = true
+end
 unless unrecoverable_exit_codes.empty?
   opts[:unrecoverable_exit_codes] = unrecoverable_exit_codes
 end

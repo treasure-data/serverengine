@@ -10,9 +10,11 @@ begin
   socket_manager = ServerEngine::SocketManager::Client.new(ENV['SERVER_ENGINE_SOCKET_MANAGER_PATH'])
   exit_with_code = ENV.key?('EXIT_WITH_CODE') ? ENV['EXIT_WITH_CODE'].to_i : nil
   exit_at_seconds = ENV.key?('EXIT_AT_SECONDS') ? ENV['EXIT_AT_SECONDS'].to_i : nil
+  exit_at_random = ENV.key?('EXIT_AT_RANDOM')
   stop_at = if exit_with_code
-              logger.info "Stop #{exit_at_seconds} seconds later with code #{exit_with_code}."
-              Time.now + exit_at_seconds
+              stop_seconds = exit_at_random ? rand(exit_at_seconds) : exit_at_seconds
+              logger.info "Stop #{stop_seconds} seconds later with code #{exit_with_code}."
+              Time.now + stop_seconds
             else
               nil
             end
