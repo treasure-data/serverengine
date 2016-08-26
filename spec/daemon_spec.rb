@@ -106,6 +106,8 @@ describe ServerEngine::Daemon do
       daemonize: false,
       supervisor: false,
       pid_path: "tmp/pid",
+      windows_daemon_cmdline: windows_daemon_cmdline,
+      command_sender: "pipe",
       log_stdout: false,
       log_stderr: false,
       unrecoverable_exit_codes: [3,4,5],

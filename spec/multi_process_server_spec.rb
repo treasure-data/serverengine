@@ -62,6 +62,7 @@
 
     it 'raises SystemExit when all workers exit with specified code by unrecoverable_exit_codes' do
       pending "unrecoverable_exit_codes supported only for multi process workers" if impl_class == ServerEngine::MultiThreadServer
+      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {workers: 4, log_stdout: false, log_stderr: false, unrecoverable_exit_codes: [3, 4, 5]}
 
@@ -85,6 +86,7 @@
 
     it 'raises SystemExit immediately when a worker exits if stop_immediately_at_unrecoverable_exit specified' do
       pending "unrecoverable_exit_codes supported only for multi process workers" if impl_class == ServerEngine::MultiThreadServer
+      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {workers: 4, log_stdout: false, log_stderr: false, unrecoverable_exit_codes: [3, 4, 5], stop_immediately_at_unrecoverable_exit: true}
 
