@@ -52,7 +52,6 @@ module ServerEngine
       @chumask = @config[:chumask]
 
       @pid = nil
-      @command_pipe = @config.fetch(:command_pipe, nil)
       @command_sender = @config.fetch(:command_sender, ServerEngine.windows? ? "pipe" : "signal")
       if @command_sender == "pipe"
         extend ServerEngine::CommandSender::Pipe
