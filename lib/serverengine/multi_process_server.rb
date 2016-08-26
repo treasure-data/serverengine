@@ -16,7 +16,6 @@
 #    limitations under the License.
 #
 require 'serverengine/signals'
-require 'serverengine/daemon'
 require 'serverengine/process_manager'
 require 'serverengine/multi_worker_server'
 require 'serverengine/privilege'
