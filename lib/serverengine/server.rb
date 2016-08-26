@@ -28,6 +28,7 @@ module ServerEngine
       @worker_module = worker_module
 
       @stop = false
+      @stop_status = nil
 
       super(load_config_proc, &block)
 
@@ -122,6 +123,9 @@ module ServerEngine
         run
       ensure
         after_run
+      end
+      if @stop_status
+        raise SystemExit.new(@stop_status)
       end
     end
 

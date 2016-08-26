@@ -42,6 +42,7 @@ module ServerEngine
       super(worker_module, load_config_proc, &block)
 
       @reload_signal = @config[:worker_reload_signal]
+      @unrecoverable_exit_codes = @config.fetch(:unrecoverable_exit_codes, [])
       @pm.command_sender = @command_sender
     end
 
@@ -83,25 +84,11 @@ module ServerEngine
         w.after_start
       end
 
-      return WorkerMonitor.new(w, wid, pmon, @reload_signal)
+      return MultiProcessServer::WorkerMonitor.new(w, wid, pmon, @reload_signal, unrecoverable_exit_codes: @unrecoverable_exit_codes)
     end
 
     def wait_tick
       @pm.tick(0.5)
-    end
-
-    class WorkerMonitor < MultiProcessServer::WorkerMonitor
-      def initialize(worker, wid, pmon, reload_signal)
-        super(worker, wid, pmon)
-        @reload_signal = reload_signal
-      end
-
-      def send_reload
-        if @reload_signal
-          @pmon.send_signal(@reload_signal) if @pmon
-        end
-        nil
-      end
     end
   end
 

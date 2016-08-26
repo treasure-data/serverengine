@@ -52,6 +52,7 @@ module ServerEngine
       @server_process_name = @config[:server_process_name]
 
       @restart_server_process = !!@config[:restart_server_process]
+      @unrecoverable_exit_codes = @config.fetch(:unrecoverable_exit_codes, [])
       @enable_detach = !!@config[:enable_detach]
       @exit_on_detach = !!@config[:exit_on_detach]
       @disable_reload = !!@config[:disable_reload]
@@ -194,6 +195,9 @@ module ServerEngine
         until @detach_flag.wait(0.5)
           if try_join
             return if @stop   # supervisor stoppped explicitly
+            if @stop_status # set exit code told by server
+              raise SystemExit.new(@stop_status)
+            end
 
             # child process died unexpectedly.
             # sleep @server_detach_wait sec and reboot process
@@ -228,6 +232,9 @@ module ServerEngine
     def try_join
       if stat = @pmon.try_join
         @logger.info "Server finished#{@stop ? '' : ' unexpectedly'} with #{ServerEngine.format_join_status(stat)}"
+        if !@stop && stat.is_a?(Process::Status) && stat.exited? && @unrecoverable_exit_codes.include?(stat.exitstatus)
+          @stop_status = stat.exitstatus
+        end
         @pmon = nil
         return stat
       else
@@ -254,7 +261,12 @@ module ServerEngine
             end
             s.install_signal_handlers
 
-            s.main
+            begin
+              s.main
+            rescue SystemExit => e
+              @logger.info "Server is exitting with code #{e.status}"
+              exit! e.status
+            end
           end
           if @command_sender == "pipe"
             inpipe.close

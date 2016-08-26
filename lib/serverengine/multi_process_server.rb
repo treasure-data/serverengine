@@ -40,6 +40,7 @@ module ServerEngine
       super(worker_module, load_config_proc, &block)
 
       @worker_process_name = @config[:worker_process_name]
+      @unrecoverable_exit_codes = @config.fetch(:unrecoverable_exit_codes, [])
     end
 
     def run
@@ -89,7 +90,7 @@ module ServerEngine
         w.after_start
       end
 
-      return WorkerMonitor.new(w, wid, pmon)
+      return WorkerMonitor.new(w, wid, pmon, unrecoverable_exit_codes: @unrecoverable_exit_codes)
     end
 
     def wait_tick
@@ -97,11 +98,17 @@ module ServerEngine
     end
 
     class WorkerMonitor
-      def initialize(worker, wid, pmon)
+      def initialize(worker, wid, pmon, reload_signal = Signals::RELOAD, unrecoverable_exit_codes: [])
         @worker = worker
         @wid = wid
         @pmon = pmon
+        @reload_signal = reload_signal
+        @unrecoverable_exit_codes = unrecoverable_exit_codes
+        @unrecoverable_exit = false
+        @exitstatus = nil
       end
+
+      attr_reader :exitstatus
 
       def send_stop(stop_graceful)
         @stop = true
@@ -114,7 +121,7 @@ module ServerEngine
       end
 
       def send_reload
-        @pmon.send_signal(Signals::RELOAD) if @pmon
+        @pmon.send_signal(@reload_signal) if @pmon
         nil
       end
 
@@ -128,11 +135,19 @@ module ServerEngine
 
         if stat = @pmon.try_join
           @worker.logger.info "Worker #{@wid} finished#{@stop ? '' : ' unexpectedly'} with #{ServerEngine.format_join_status(stat)}"
+          if stat.is_a?(Process::Status) && stat.exited? && @unrecoverable_exit_codes.include?(stat.exitstatus)
+            @unrecoverable_exit = true
+            @exitstatus = stat.exitstatus
+          end
           @pmon = nil
           return false
         else
           return true
         end
+      end
+
+      def recoverable?
+        !@unrecoverable_exit
       end
     end
   end

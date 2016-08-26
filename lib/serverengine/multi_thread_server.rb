@@ -70,6 +70,10 @@ module ServerEngine
       def alive?
         @thread.alive?
       end
+
+      def recoverable?
+        true
+      end
     end
   end
 

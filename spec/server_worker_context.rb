@@ -90,6 +90,7 @@ def incr_test_state(key)
 
       f.pos = 0
       f.write YAML.dump(data)
+      data[key]
     end
   end
 end
@@ -185,6 +186,32 @@ module RunErrorWorker
   def run
     incr_test_state :worker_run
     raise StandardError, "error test"
+  end
+end
+
+module TestExitWorker
+  def initialize
+    @stop_flag = BlockingFlag.new
+    @worker_num = incr_test_state :worker_initialize
+    @exit_code = case @worker_num
+                 when 1 then 5
+                 when 4 then 3
+                 else 4
+                 end
+  end
+
+  def run
+    incr_test_state :worker_run
+    exit_at = Time.now + @worker_num * 2
+    until @stop_flag.wait(0.1)
+      exit!(@exit_code) if Time.now >= exit_at
+    end
+    incr_test_state :worker_finished
+  end
+
+  def stop
+    incr_test_state :worker_stop
+    @stop_flag.set!
   end
 end
 

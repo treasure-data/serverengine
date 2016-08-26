@@ -25,6 +25,8 @@ module ServerEngine
       @last_start_worker_time = 0
 
       super(worker_module, load_config_proc, &block)
+
+      @stop_immediately_at_unrecoverable_exit = @config.fetch(:stop_immediately_at_unrecoverable_exit, false)
     end
 
     def stop(stop_graceful)
@@ -100,6 +102,16 @@ module ServerEngine
         if m && m.alive?
           # alive
           num_alive += 1
+
+        elsif m && m.respond_to?(:recoverable?) && !m.recoverable?
+          # exited, with unrecoverable exit code
+          if @stop_immediately_at_unrecoverable_exit
+            stop(true) # graceful stop for workers
+            # @stop is set by Server#stop
+          end
+          # server will stop when all workers exited in this state
+          # the last status will be used for server/supervisor/daemon
+          @stop_status = m.exitstatus if m.exitstatus
 
         elsif wid < @num_workers
           # scale up or reboot

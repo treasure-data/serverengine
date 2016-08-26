@@ -116,7 +116,11 @@ module ServerEngine
         @pid = Process.pid
         s = create_server(create_logger)
         s.install_signal_handlers
-        s.main
+        begin
+          s.main
+        rescue SystemExit => e
+          return e.status
+        end
         return 0
       end
     end
@@ -165,7 +169,11 @@ module ServerEngine
             wpipe.write "\n"
             wpipe.close
 
-            s.main
+            begin
+              s.main
+            rescue SystemExit => e
+              exit e.status
+            end
           end
 
           exit 0

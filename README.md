@@ -232,6 +232,7 @@ se = ServerEngine.create(nil, MyWorker, {
 se.run
 ```
 
+This auto restart reature will be suppressed for workers which exits with exit code specified by `unrecoverable_exit_codes`. At this case, whole process will exit without error (exit code 0).
 
 ## Live restart
 
@@ -489,6 +490,8 @@ Available methods are different depending on `worker_type`. ServerEngine support
   - **worker_immediate_kill_interval** sets the first interval of QUIT signals in seconds (default: 10) [dynamic reloadable]
   - **worker_immediate_kill_interval_increment** sets increment of QUIT signal interval in seconds (default: 10) [dynamic reloadable]
   - **worker_immediate_kill_timeout** sets promotion timeout from QUIT to KILL signal in seconds. -1 means no timeout (default: 600) [dynamic reloadable]
+  - **unrecoverable_exit_codes** handles worker processes, which exits with code included in this value, as unrecoverable (not to restart) (default: [])
+  - **stop_immediately_at_unrecoverable_exit** stops server immediately if a worker exits with unrecoverable exit status (default: false)
 - Multiprocess spawn server: available only when `worker_type` is "spawn"
   - all parameters of multiprocess server excepting worker_process_name
   - **worker_reload_signal** sets the signal to notice configuration reload to a spawned process. Set nil to disable (default: nil)

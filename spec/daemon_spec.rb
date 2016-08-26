@@ -98,4 +98,72 @@ describe ServerEngine::Daemon do
       dm.stop(true) rescue nil
     end
   end
+
+  it 'exits with status 0 when it was stopped normally' do
+    pending "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
+    dm = Daemon.new(
+      TestServer,
+      TestWorker,
+      daemonize: false,
+      supervisor: false,
+      pid_path: "tmp/pid",
+      log_stdout: false,
+      log_stderr: false,
+      unrecoverable_exit_codes: [3,4,5],
+    )
+    exit_code = nil
+    t = Thread.new { exit_code = dm.main }
+    sleep 0.1 until dm.instance_eval{ @pid }
+    dm.stop(true)
+
+    t.join
+
+    exit_code.should == 0
+  end
+
+  it 'exits with status of workers if worker exits with status specified in unrecoverable_exit_codes, without supervisor' do
+    pending "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
+
+    dm = Daemon.new(
+      TestServer,
+      TestExitWorker,
+      daemonize: false,
+      supervisor: false,
+      worker_type: 'process',
+      pid_path: "tmp/pid",
+      log_stdout: false,
+      log_stderr: false,
+      unrecoverable_exit_codes: [3,4,5],
+    )
+    exit_code = nil
+    t = Thread.new { exit_code = dm.main }
+    sleep 0.1 until dm.instance_eval{ @pid }
+
+    t.join
+
+    exit_code.should == 5
+  end
+
+  it 'exits with status of workers if worker exits with status specified in unrecoverable_exit_codes, with supervisor' do
+    pending "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
+
+    dm = Daemon.new(
+      TestServer,
+      TestExitWorker,
+      daemonize: false,
+      supervisor: true,
+      worker_type: 'process',
+      pid_path: "tmp/pid",
+      log_stdout: false,
+      log_stderr: false,
+      unrecoverable_exit_codes: [3,4,5],
+    )
+    exit_code = nil
+    t = Thread.new { exit_code = dm.main }
+    sleep 0.1 until dm.instance_eval{ @pid }
+
+    t.join
+
+    exit_code.should == 5
+  end
 end
