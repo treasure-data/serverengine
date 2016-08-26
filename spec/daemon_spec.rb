@@ -100,14 +100,13 @@ describe ServerEngine::Daemon do
   end
 
   it 'exits with status 0 when it was stopped normally' do
+    pending "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
     dm = Daemon.new(
       TestServer,
       TestWorker,
       daemonize: false,
       supervisor: false,
       pid_path: "tmp/pid",
-      windows_daemon_cmdline: windows_daemon_cmdline,
-      command_sender: "pipe",
       log_stdout: false,
       log_stderr: false,
       unrecoverable_exit_codes: [3,4,5],
