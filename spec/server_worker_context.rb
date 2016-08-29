@@ -151,7 +151,7 @@ end
 module TestWorker
   def initialize
     incr_test_state :worker_initialize
-    @stop_flag = BlockingFlag.new
+    @stop_flag = ServerEngine::BlockingFlag.new
   end
 
   def before_fork
@@ -179,6 +179,36 @@ module TestWorker
 
   def after_start
     incr_test_state :worker_after_start
+  end
+
+  def spawn(pm)
+    script = <<-EOF
+    class WorkerClass
+      include TestWorker
+      def run
+        Thread.new do
+          command_pipe = STDIN.dup
+          STDIN.reopen(File::NULL)
+          Thread.new do
+            until @stop_flag.set?
+              cmd = command_pipe.gets.chomp
+              case cmd
+              when "GRACEFUL_STOP", "IMMEDIATE_STOP"
+                stop
+              when "RELOAD"
+                reload
+              end
+            end
+          end
+        end
+        super
+      end
+    end
+    $state_file_mutex = Mutex.new
+    WorkerClass.new.run
+    EOF
+    cmdline = [ServerEngine.ruby_bin_path] + %w[-rbundler/setup -rrspec -I. -Ispec -rserverengine -r] + [__FILE__] + %w[-e] + [script]
+    pm.spawn(*cmdline)
   end
 end
 
