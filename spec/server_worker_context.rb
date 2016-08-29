@@ -151,7 +151,7 @@ end
 module TestWorker
   def initialize
     incr_test_state :worker_initialize
-    @stop_flag = BlockingFlag.new
+    @stop_flag = ServerEngine::BlockingFlag.new
   end
 
   def before_fork
@@ -207,7 +207,7 @@ module TestWorker
     $state_file_mutex = Mutex.new
     WorkerClass.new.run
     EOF
-    cmdline = [ServerEngine.ruby_bin_path] + %w[-I. -Ispec -rrspec -rspec/spec_helper.rb -r] + [__FILE__] + %w[-e] + [script]
+    cmdline = [ServerEngine.ruby_bin_path] + %w[-rbundler/setup -rrspec -I. -Ispec -rserverengine -r] + [__FILE__] + %w[-e] + [script]
     pm.spawn(*cmdline)
   end
 end
