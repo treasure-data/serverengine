@@ -1,3 +1,4 @@
+require 'timeout'
 
 describe ServerEngine::MultiSpawnServer do
   include_context 'test server and worker'
@@ -12,6 +13,9 @@ describe ServerEngine::MultiSpawnServer do
       begin
         wait_for_fork
 
+        Timeout.timeout(5) do
+          sleep(0.5) until test_state(:worker_run) == 2
+        end
         test_state(:worker_run).should == 2
       ensure
         s.stop(true)
