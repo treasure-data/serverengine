@@ -1,3 +1,3 @@
 module ServerEngine
-  VERSION = "2.0.0pre2"
+  VERSION = "2.0.0"
 end
