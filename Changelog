@@ -1,3 +1,7 @@
+2016-10-18 version 2.0.1:
+
+* Fix to set GID before UID, to make it sure to set GID with superuser privilege
+
 2016-08-23 version 2.0.0:
 
 * Add windows-pr gem dependency to get ruby_bin_path correctly
