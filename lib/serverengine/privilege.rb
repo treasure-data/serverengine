@@ -36,6 +36,11 @@ module ServerEngine
     end
 
     def self.change(user, group)
+      if group
+        etc_group = get_etc_group(group)
+        Process::GID.change_privilege(etc_group.gid)
+      end
+
       if user
         etc_pw = get_etc_passwd(user)
         user_groups = [etc_pw.gid]
@@ -44,11 +49,6 @@ module ServerEngine
 
         Process.groups = Process.groups | user_groups
         Process::UID.change_privilege(etc_pw.uid)
-      end
-
-      if group
-        etc_group = get_etc_group(group)
-        Process::GID.change_privilege(etc_group.gid)
       end
 
       nil
