@@ -239,16 +239,15 @@ module ServerEngine
         raise AlreadyClosedError.new
       end
 
+      if @rpipes.empty?
+        sleep blocking_timeout if blocking_timeout > 0
+        return nil
+      end
+
       time ||= Time.now
 
       unless ServerEngine.windows?
         # heartbeat is not supported on Windows platform.
-
-        if @rpipes.empty?
-          sleep blocking_timeout if blocking_timeout > 0
-          return nil
-        end
-
         ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
 
         if ready_pipes
