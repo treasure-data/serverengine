@@ -244,28 +244,28 @@ module ServerEngine
         return nil
       end
 
-      time ||= Time.now
+      if ServerEngine.windows?
+        raise "heartbeat is not supported on Windows platform. @rpipes must be empty."
+      end
 
-      unless ServerEngine.windows?
-        # heartbeat is not supported on Windows platform.
-        ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
+      time = Time.now
+      ready_pipes, _, _ = IO.select(@rpipes.keys, nil, nil, blocking_timeout)
 
-        if ready_pipes
-          ready_pipes.each do |r|
-            begin
-              r.read_nonblock(1024, @read_buffer)
-            rescue Errno::EAGAIN, Errno::EINTR
-              next
-            rescue #EOFError
-              m = @rpipes.delete(r)
-              m.start_immediate_stop!
-              r.close rescue nil
-              next
-            end
+      if ready_pipes
+        ready_pipes.each do |r|
+          begin
+            r.read_nonblock(1024, @read_buffer)
+          rescue Errno::EAGAIN, Errno::EINTR
+            next
+          rescue #EOFError
+            m = @rpipes.delete(r)
+            m.start_immediate_stop!
+            r.close rescue nil
+            next
+          end
 
-            if m = @rpipes[r]
-              m.last_heartbeat_time = time
-            end
+          if m = @rpipes[r]
+            m.last_heartbeat_time = time
           end
         end
       end
