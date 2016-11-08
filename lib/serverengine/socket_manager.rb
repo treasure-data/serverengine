@@ -61,7 +61,7 @@ module ServerEngine
       def self.generate_path
         if ServerEngine.windows?
           for port in 10000..65535
-            if `netstat -na | find "#{port}"`.length == 0
+            if `netstat -na | findstr "#{port}"`.length == 0
               return port
             end
           end
