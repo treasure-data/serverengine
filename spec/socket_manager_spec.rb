@@ -16,7 +16,7 @@ describe ServerEngine::SocketManager do
   end
 
   after(:each) do
-    File.unlink(server_path) if File.exist?(server_path)
+    File.unlink(server_path) if server_path.is_a?(String) && File.exist?(server_path)
   end
 
   context 'with thread' do
