@@ -97,11 +97,10 @@ module ServerEngine
     dlload ruby_dll_path
 
     extern "int rb_w32_map_errno(int)"
-    extern "void rb_syserr_fail(int, char *)"
 
     def self.raise_last_error(name)
       errno = rb_w32_map_errno(WinSock.WSAGetLastError)
-      rb_syserr_fail(errno, name)
+      raise SystemCallError.new(name, errno)
     end
 
     extern "int rb_w32_wrap_io_handle(int, int)"
