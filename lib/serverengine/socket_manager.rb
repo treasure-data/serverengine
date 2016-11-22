@@ -26,34 +26,36 @@ module ServerEngine
         @path = path
       end
 
-      def listen_tcp(bind, port)
+      def listen(proto, bind, port)
+        bind_ip = IPAddr.new(IPSocket.getaddress(bind))
+        family = bind_ip.ipv6? ? Socket::AF_INET6 : Socket::AF_INET
+
+        listen_method = case proto
+                        when :tcp then :listen_tcp
+                        when :udp then :listen_udp
+                        else
+                          raise ArgumentError, "unknown protocol: #{proto}"
+                        end
         peer = connect_peer(@path)
         begin
-          SocketManager.send_peer(peer, [Process.pid, :listen_tcp, bind, port])
+          SocketManager.send_peer(peer, [Process.pid, listen_method, bind, port])
           res = SocketManager.recv_peer(peer)
           if res.is_a?(Exception)
             raise res
           else
-            return recv_tcp(peer, res)
+            return send(:recv, family, proto, peer, res)
           end
         ensure
           peer.close
         end
       end
 
+      def listen_tcp(bind, port)
+        listen(:tcp, bind, port)
+      end
+
       def listen_udp(bind, port)
-        peer = connect_peer(@path)
-        begin
-          SocketManager.send_peer(peer, [Process.pid, :listen_udp, bind, port])
-          res = SocketManager.recv_peer(peer)
-          if res.is_a?(Exception)
-            raise res
-          else
-            return recv_udp(peer, res)
-          end
-        ensure
-          peer.close
-        end
+        listen(:udp, bind, port)
       end
     end
 
@@ -94,28 +96,29 @@ module ServerEngine
 
       private
 
-      def listen_tcp(bind, port)
+      def listen(proto, bind, port)
+        sockets, new_method = case proto
+                              when :tcp then [@tcp_sockets, :listen_tcp_new]
+                              when :udp then [@udp_sockets, :listen_udp_new]
+                              else
+                                raise ArgumentError, "invalid protocol: #{proto}"
+                              end
         key, bind_ip = resolve_bind_key(bind, port)
 
         @mutex.synchronize do
-          if @tcp_sockets.has_key?(key)
-            return @tcp_sockets[key]
-          else
-            return @tcp_sockets[key] = listen_tcp_new(bind_ip, port)
+          unless sockets.has_key?(key)
+            sockets[key] = send(new_method, bind_ip, port)
           end
+          return sockets[key]
         end
       end
 
-      def listen_udp(bind, port)
-        key, bind_ip = resolve_bind_key(bind, port)
+      def listen_tcp(bind, port)
+        listen(:tcp, bind, port)
+      end
 
-        @mutex.synchronize do
-          if @udp_sockets.has_key?(key)
-            return @udp_sockets[key]
-          else
-            return @udp_sockets[key] = listen_udp_new(bind_ip, port)
-          end
-        end
+      def listen_udp(bind, port)
+        listen(:udp, bind, port)
       end
 
       def resolve_bind_key(bind, port)
