@@ -19,6 +19,19 @@ describe ServerEngine::SocketManager do
     File.unlink(server_path) if server_path.is_a?(String) && File.exist?(server_path)
   end
 
+  context 'using ipv6' do
+    it 'raises Errno::EADDRINUSE when try to bind the same port twice' do
+      begin
+        t1 = TCPServer.open("::1", test_port)
+        t2 = nil
+        expect{ t2 = TCPServer.open("::1", test_port) }.to raise_error(Errno::EADDRINUSE)
+      ensure
+        t1.close
+        t2.close if t2
+      end
+    end
+  end if (TCPServer.open("::1",0) rescue nil)
+
   context 'with thread' do
     context 'using ipv4' do
       it 'works' do
