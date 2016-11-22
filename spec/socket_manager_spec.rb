@@ -1,53 +1,69 @@
+require 'socket'
 
 describe ServerEngine::SocketManager do
   include_context 'test server and worker'
 
   let(:server_path) do
-    'tmp/socket_manager_test.sock'
+    if ServerEngine.windows?
+      24223
+    else
+      'tmp/socket_manager_test.sock'
+    end
+  end
+
+  let(:test_port) do
+    9101
   end
 
   after(:each) do
     File.unlink(server_path) if File.exist?(server_path)
   end
 
-  if ServerEngine.windows?
-    let(:server_port) do
-     24223
-    end
-
-    let(:test_port) do
-      9101
-    end
-
-    it 'is windows' do
-      SocketManager::Client.is_a?(SocketManagerWin::ClientModule)
-      SocketManager::Server.is_a?(SocketManagerWin::ServerModule)
-    end
-
-    context 'with thread' do
+  context 'with thread' do
+    context 'using ipv4' do
       it 'works' do
-        server = SocketManager::Server.open(server_port)
+        server = SocketManager::Server.open(server_path)
+
+        mutex = Mutex.new
+        server_thread_started = false
 
         thread = Thread.new do
+          mutex.lock
+          server_thread_started = true
 
-          client = ServerEngine::SocketManager::Client.new(server_port)
-          tcp = client.listen_tcp('127.0.0.1', test_port)
-          udp = client.listen_udp('127.0.0.1', test_port)
+          begin
+            client = ServerEngine::SocketManager::Client.new(server_path)
 
-          incr_test_state(:is_tcp_server) if tcp.is_a?(TCPServer)
-          incr_test_state(:is_udp_socket) if udp.is_a?(UDPSocket)
+            tcp = client.listen_tcp('127.0.0.1', test_port)
+            udp = client.listen_udp('127.0.0.1', test_port)
 
-          data, _from = udp.recvfrom(10)
-          incr_test_state(:udp_data_sent) if data == "ok"
+            incr_test_state(:is_tcp_server) if tcp.is_a?(TCPServer)
+            incr_test_state(:is_udp_socket) if udp.is_a?(UDPSocket)
 
-          s = tcp.accept
-          s.write("ok")
-          s.close
+            mutex.unlock
+
+            data, _from = udp.recvfrom(10)
+            incr_test_state(:udp_data_sent) if data == "ok"
+
+            s = tcp.accept
+            s.write("ok")
+            s.close
+          rescue => e
+            p(here: "rescue in server thread", error: e)
+            e.backtrace.each do |bt|
+              STDERR.puts bt
+            end
+            raise
+          ensure
+            tcp.close
+            udp.close
+          end
         end
 
-        sleep 1
+        sleep 0.1 until server_thread_started
+        sleep 0.1 while mutex.locked?
 
-        u = UDPSocket.new
+        u = UDPSocket.new(Socket::AF_INET)
         u.send "ok", 0, '127.0.0.1', test_port
         u.close
 
@@ -63,12 +79,14 @@ describe ServerEngine::SocketManager do
         test_state(:udp_data_sent).should == 1
       end
     end
+  end
 
-  else
-    let(:test_port) do
-      9102
+  if ServerEngine.windows?
+    it 'is windows' do
+      SocketManager::Client.is_a?(SocketManagerWin::ClientModule)
+      SocketManager::Server.is_a?(SocketManagerWin::ServerModule)
     end
-
+  else
     it 'is unix' do
       SocketManager::Client.is_a?(SocketManagerUnix::ClientModule)
       SocketManager::Server.is_a?(SocketManagerUnix::ServerModule)
@@ -81,20 +99,25 @@ describe ServerEngine::SocketManager do
         fork do
           server.close
 
-          client = server.new_client
+          begin
+            client = server.new_client
 
-          tcp = client.listen_tcp('127.0.0.1', test_port)
-          udp = client.listen_udp('127.0.0.1', test_port)
+            tcp = client.listen_tcp('127.0.0.1', test_port)
+            udp = client.listen_udp('127.0.0.1', test_port)
 
-          incr_test_state(:is_tcp_server) if tcp.is_a?(TCPServer)
-          incr_test_state(:is_udp_socket) if udp.is_a?(UDPSocket)
+            incr_test_state(:is_tcp_server) if tcp.is_a?(TCPServer)
+            incr_test_state(:is_udp_socket) if udp.is_a?(UDPSocket)
 
-          data, _from = udp.recvfrom(10)
-          incr_test_state(:udp_data_sent) if data == "ok"
+            data, _from = udp.recvfrom(10)
+            incr_test_state(:udp_data_sent) if data == "ok"
 
-          s = tcp.accept
-          s.write("ok")
-          s.close
+            s = tcp.accept
+            s.write("ok")
+            s.close
+          ensure
+            tcp.close
+            udp.close
+          end
         end
 
         wait_for_fork
