@@ -79,6 +79,67 @@ describe ServerEngine::SocketManager do
         test_state(:udp_data_sent).should == 1
       end
     end
+
+    context 'using ipv6' do
+      it 'works' do
+        server = SocketManager::Server.open(server_path)
+
+        mutex = Mutex.new
+        server_thread_started = false
+
+        thread = Thread.new do
+          Thread.current.abort_on_exception = true
+          mutex.lock
+          server_thread_started = true
+
+          begin
+            client = ServerEngine::SocketManager::Client.new(server_path)
+
+            tcp = client.listen_tcp('::1', test_port)
+            udp = client.listen_udp('::1', test_port)
+
+            incr_test_state(:is_tcp_server) if tcp.is_a?(TCPServer)
+            incr_test_state(:is_udp_socket) if udp.is_a?(UDPSocket)
+
+            mutex.unlock
+
+            data, _from = udp.recvfrom(10)
+            incr_test_state(:udp_data_sent) if data == "ok"
+
+            s = tcp.accept
+            s.write("ok")
+            s.close
+          rescue => e
+            p(here: "rescue in server thread", error: e)
+            e.backtrace.each do |bt|
+              STDERR.puts bt
+            end
+            raise
+          ensure
+            tcp.close
+            udp.close
+          end
+        end
+
+        sleep 0.1 until server_thread_started
+        sleep 0.1 while mutex.locked?
+
+        u = UDPSocket.new(Socket::AF_INET6)
+        u.send "ok", 0, '::1', test_port
+        u.close
+
+        t = TCPSocket.open('::1', test_port)
+        t.read.should == "ok"
+        t.close
+
+        server.close
+        thread.join
+
+        test_state(:is_tcp_server).should == 1
+        test_state(:is_udp_socket).should == 1
+        test_state(:udp_data_sent).should == 1
+      end
+    end if (TCPServer.open("::1",0) rescue nil)
   end
 
   if ServerEngine.windows?
