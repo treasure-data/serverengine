@@ -38,13 +38,11 @@ module ServerEngine
       end
 
       def recv_tcp(family, peer, sent)
-        return recv(family, :tcp, peer, sent)
-        return peer.recv_io(TCPServer)
+        recv(family, :tcp, peer, sent)
       end
 
       def recv_udp(family, peer, sent)
-        return recv(family, :udp, peer, sent)
-        return peer.recv_io(UDPSocket)
+        recv(family, :udp, peer, sent)
       end
     end
 
