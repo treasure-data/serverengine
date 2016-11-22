@@ -1,3 +1,7 @@
+2016-11-22 version 2.0.3:
+
+* Fix bug about IPv6 handling on Windows
+
 2016-11-17 version 2.0.2:
 
 * Fix bug to make busy loop on Windows
