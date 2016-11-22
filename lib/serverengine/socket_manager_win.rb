@@ -30,74 +30,77 @@ module ServerEngine
         return TCPSocket.open("127.0.0.1", addr)
       end
 
-      def recv_tcp(peer, sent)
-        proto = WinSock::WSAPROTOCOL_INFO.from_bin(sent)
+      def recv(family, proto, peer, sent)
+        server_class, protocol = case proto
+                                 when :tcp then [TCPServer, Socket::SOCK_STREAM]
+                                 when :udp then [UDPSocket, Socket::SOCK_DGRAM]
+                                 else
+                                   raise ArgumentError, "invalid protocol: #{proto}"
+                                 end
 
-        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, 0, proto, 0, 1)
+        proto_info = WinSock::WSAPROTOCOL_INFO.from_bin(sent)
+
+        handle = WinSock.WSASocketA(family, protocol, 0, proto_info, 0, 1)
         if handle == WinSock::INVALID_SOCKET
           RbWinSock.raise_last_error("WSASocketA(2)")
         end
 
-        return RbWinSock.wrap_io_handle(TCPServer, handle, 0)
+        return RbWinSock.wrap_io_handle(server_class, handle, 0)
       end
 
-      def recv_udp(peer, sent)
-        proto = WinSock::WSAPROTOCOL_INFO.from_bin(sent)
+      def recv_tcp(family, peer, sent)
+        recv(family, :tcp, peer, sent)
+      end
 
-        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, 0, proto, 0, 1)
-        if handle == WinSock::INVALID_SOCKET
-          RbWinSock.raise_last_error("WSASocketA(2)")
-        end
-
-        return RbWinSock.wrap_io_handle(UDPSocket, handle, 0)
+      def recv_udp(family, peer, sent)
+        recv(family, :udp, peer, sent)
       end
     end
 
     module ServerModule
       private
 
-      def listen_tcp_new(bind_ip, port)
+      TCP_OPTIONS = [Socket::SOCK_STREAM, Socket::IPPROTO_TCP, TCPServer, true]
+      UDP_OPTIONS = [Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, UDPSocket, false]
+
+      def listen_new(proto, bind_ip, port)
+        protocol, proto_info, klass, listen = case proto
+                                              when :tcp then TCP_OPTIONS
+                                              when :udp then UDP_OPTIONS
+                                              else
+                                                raise ArgumentError, "invalid protocol: #{proto}"
+                                              end
+        family = bind_ip.ipv6? ? Socket::AF_INET6 : Socket::AF_INET
+
         sock_addr = Socket.pack_sockaddr_in(port, bind_ip.to_s)
 
-        handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_STREAM, Socket::IPPROTO_TCP, nil, 0, 1)
+        handle = WinSock.WSASocketA(family, protocol, proto_info, nil, 0, 1)
         if handle == WinSock::INVALID_SOCKET
           RbWinSock.raise_last_error("WSASocketA(2)")
         end
 
-        # wrap in TCPServer immediately so that its finalizer safely closes the handle
-        sock = RbWinSock.wrap_io_handle(TCPServer, handle, 0)
+        # wrap in TCPServer/UDPSocket immediately so that its finalizer safely closes the handle
+        sock = RbWinSock.wrap_io_handle(klass, handle, 0)
 
         unless WinSock.bind(sock.handle, sock_addr, sock_addr.bytesize) == 0
           RbWinSock.raise_last_error("bind(2)")
         end
-        unless WinSock.listen(sock.handle, Socket::SOMAXCONN) == 0
-          RbWinSock.raise_last_error("listen(2)")
+
+        if listen
+          unless WinSock.listen(sock.handle, Socket::SOMAXCONN) == 0
+            RbWinSock.raise_last_error("listen(2)")
+          end
         end
 
-        return sock
+        sock
+      end
+
+      def listen_tcp_new(bind_ip, port)
+        listen_new(:tcp, bind_ip, port)
       end
 
       def listen_udp_new(bind_ip, port)
-        sock_addr = Socket.pack_sockaddr_in(port, bind_ip.to_s)
-
-        if IPAddr.new(IPSocket.getaddress(bind_ip.to_s)).ipv4?
-          handle = WinSock.WSASocketA(Socket::AF_INET, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, 1)
-        else
-          handle = WinSock.WSASocketA(Socket::AF_INET6, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP, nil, 0, 1)
-        end
-
-        if handle == WinSock::INVALID_SOCKET
-          RbWinSock.raise_last_error("WSASocketA(2)")
-        end
-
-        # wrap in UDPSocket immediately so that its finalizer safely closes the handle
-        sock = RbWinSock.wrap_io_handle(UDPSocket, handle, 0)
-
-        unless WinSock.bind(sock.handle, sock_addr, sock_addr.bytesize) == 0
-          RbWinSock.raise_last_error("bind(2)")
-        end
-
-        return sock
+        listen_new(:udp, bind_ip, port)
       end
 
       def htons(h)

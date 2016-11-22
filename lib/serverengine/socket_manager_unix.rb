@@ -27,11 +27,23 @@ module ServerEngine
         return UNIXSocket.new(path)
       end
 
-      def recv_tcp(peer, sent)
+      def recv(family, proto, peer, sent)
+        server_class = case proto
+                       when :tcp then TCPServer
+                       when :udp then UDPSocket
+                       else
+                         raise ArgumentError, "invalid protocol: #{proto}"
+                       end
+        peer.recv_io(server_class)
+      end
+
+      def recv_tcp(family, peer, sent)
+        return recv(family, :tcp, peer, sent)
         return peer.recv_io(TCPServer)
       end
 
-      def recv_udp(peer, sent)
+      def recv_udp(family, peer, sent)
+        return recv(family, :udp, peer, sent)
         return peer.recv_io(UDPSocket)
       end
     end
@@ -49,7 +61,7 @@ module ServerEngine
         if bind_ip.ipv6?
           sock = UDPSocket.new(Socket::AF_INET6)
         else
-          sock = UDPSocket.new
+          sock = UDPSocket.new(Socket::AF_INET)
         end
         sock.bind(bind_ip.to_s, port)
         return sock
