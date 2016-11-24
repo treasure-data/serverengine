@@ -1,3 +1,7 @@
+2016-11-24 version 2.0.4:
+
+* Fix bug to crash Ruby VM when SocketManager fails to bind IPv6 addresses on Windows
+
 2016-11-22 version 2.0.3:
 
 * Fix bug about IPv6 handling on Windows
