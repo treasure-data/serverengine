@@ -112,12 +112,19 @@ module ServerEngine
         # but using not conflict port is difficult. Then We had better implement using NamedPipe.
         @server = TCPServer.new("127.0.0.1", addr)
         @thread = Thread.new do
+          if Thread.current.respond_to?(:report_on_exception=)
+            # TODO: make this default when ruby 2.3 or earlier are outdated
+            Thread.current.report_on_exception = true
+          end
+
           begin
             while peer = @server.accept
               Thread.new(peer, &method(:process_peer))  # process_peer calls send_socket
             end
           rescue => e
-            unless @server.closed?
+            if @server.closed?
+              # ignore error raised about tcp socket now closed in another thread
+            else
               ServerEngine.dump_uncaught_error(e)
             end
           end
