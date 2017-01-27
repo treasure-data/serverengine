@@ -125,7 +125,11 @@ module ServerEngine
             if @server.closed?
               # ignore error raised about tcp socket now closed in another thread
             else
-              ServerEngine.dump_uncaught_error(e)
+              begin
+                ServerEngine.dump_uncaught_error(e)
+              rescue IOError => e2 # STDERR is closed or unavailable with other reasons
+                raise e # Ruby runtime can show this if Thread#report_on_exception is available
+              end
             end
           end
         end
