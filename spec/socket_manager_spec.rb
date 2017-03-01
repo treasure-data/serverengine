@@ -19,6 +19,22 @@ describe ServerEngine::SocketManager do
     File.unlink(server_path) if server_path.is_a?(String) && File.exist?(server_path)
   end
 
+  if !ServerEngine.windows?
+    context 'Server.generate_path' do
+      it 'returns socket path under /tmp' do
+        path = SocketManager::Server.generate_path
+        expect(path).to include('/tmp/SERVERENGINE_SOCKETMANAGER_')
+      end
+
+      it 'can be changed via environment variable' do
+        ENV['SERVERENGINE_SOCKETMANAGER_SOCK_DIR'] = '/tmp/foo'
+        path = SocketManager::Server.generate_path
+        expect(path).to include('/tmp/foo/SERVERENGINE_SOCKETMANAGER_')
+        ENV.delete('SERVERENGINE_SOCKETMANAGER_SOCK_DIR')
+      end
+    end
+  end
+
   context 'with thread' do
     context 'using ipv4' do
       it 'works' do
