@@ -38,11 +38,11 @@ module ServerEngine
     end
 
     def run
-      raise NoMethodError, "Worker#run method is not implemented"
+      raise NotImplementedError, "Worker#run method is not implemented"
     end
 
     def spawn(process_manager)
-      raise NoMethodError, "Worker#spawn(process_manager) method is required for worker_type=spawn"
+      raise NotImplementedError, "Worker#spawn(process_manager) method is required for worker_type=spawn"
     end
 
     def stop

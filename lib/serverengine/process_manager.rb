@@ -116,7 +116,7 @@ module ServerEngine
 
     def fork(&block)
       if ServerEngine.windows?
-        raise NotImplementedError, "fork is not available on this platform. Please use spawn (worker_type: 'spawn')."
+        raise "fork is not available on this platform. Please use spawn (worker_type: 'spawn')."
       end
 
       rpipe, wpipe = new_pipe_pair

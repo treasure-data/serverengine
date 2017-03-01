@@ -74,6 +74,10 @@ module ServerEngine
       nil
     end
 
+    def spawn(process_manager)
+      raise NotImplementedError
+    end
+
     def start_worker(wid)
       w = create_worker(wid)
 
