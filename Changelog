@@ -1,3 +1,8 @@
+2017-03-01 version 2.0.5:
+
+* Support SERVERENGINE_SOCKETMANAGER_SOCK_DIR environment variable to change
+  base directory of SocketManager's socket path
+
 2016-11-24 version 2.0.4:
 
 * Fix bug to crash Ruby VM when SocketManager fails to bind IPv6 addresses on Windows
