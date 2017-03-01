@@ -21,7 +21,8 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "sigdump", ["~> 0.2.2"]
 
-  gem.add_development_dependency "rake", [">= 0.9.2"]
+  # rake v12.x doesn't work with rspec 2. rspec should be updated to 3
+  gem.add_development_dependency "rake", ["~> 11.0"]
   gem.add_development_dependency "rspec", ["~> 2.13.0"]
 
   gem.add_development_dependency 'rake-compiler-dock', ['~> 0.5.0']
