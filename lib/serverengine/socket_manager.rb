@@ -68,7 +68,8 @@ module ServerEngine
             end
           end
         else
-          '/tmp/SERVERENGINE_SOCKETMANAGER_' + Time.now.to_s.gsub(' ', '') + '_' + Process.pid.to_s
+          base_dir = (ENV['SERVERENGINE_SOCKETMANAGER_SOCK_DIR'] || '/tmp')
+          File.join(base_dir, 'SERVERENGINE_SOCKETMANAGER_' + Time.now.to_s.gsub(' ', '') + '_' + Process.pid.to_s)
         end
       end
 
