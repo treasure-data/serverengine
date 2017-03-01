@@ -17,7 +17,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.has_rdoc = false
 
-  gem.required_ruby_version = ">= 2.1.0"
+  gem.required_ruby_version = ">= 2.0.0"
 
   gem.add_dependency "sigdump", ["~> 0.2.2"]
 
