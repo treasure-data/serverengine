@@ -138,7 +138,10 @@ module ServerEngine
 
       def process_peer(peer)
         while true
-          pid, method, bind, port = *SocketManager.recv_peer(peer)
+          res = SocketManager.recv_peer(peer)
+          return if res.nil?
+
+          pid, method, bind, port = *res
           begin
             send_socket(peer, pid, method, bind, port)
           rescue => e
@@ -157,7 +160,10 @@ module ServerEngine
     end
 
     def self.recv_peer(peer)
-      len = peer.read(4).unpack('N').first
+      res = peer.read(4)
+      return nil if res.nil?
+
+      len = res.unpack('N').first
       data = peer.read(len)
       Marshal.load(data)
     end
