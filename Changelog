@@ -1,3 +1,7 @@
+2018-02-09 version 2.0.6:
+
+* Avoid thread error log in ruby 2.5
+
 2017-03-01 version 2.0.5:
 
 * Support SERVERENGINE_SOCKETMANAGER_SOCK_DIR environment variable to change
