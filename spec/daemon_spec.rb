@@ -44,6 +44,10 @@ describe ServerEngine::Daemon do
       wait_for_stop
       test_state(:server_restart_immediate).should == 1
 
+      dm.dump
+      wait_for_stop
+      test_state(:server_dump).should == 1
+
       dm.stop(false)
       wait_for_stop
       test_state(:server_stop_immediate).should == 1

@@ -146,6 +146,11 @@ module TestServer
     incr_test_state :server_detach
     super
   end
+
+  def dump
+    incr_test_state :server_dump
+    super
+  end
 end
 
 module TestWorker
