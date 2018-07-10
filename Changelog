@@ -1,3 +1,7 @@
+2018-07-09 version 2.0.7:
+
+* Add disable_sigdump option
+
 2018-02-09 version 2.0.6:
 
 * Avoid thread error log in ruby 2.5
