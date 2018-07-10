@@ -319,7 +319,8 @@ Send `USR2` signal to reload configuration file.
 - **HUP:** immediate restart (available only when `worker_type` is "process")
 - **USR2:** reload config file and reopen log file
 - **INT:** detach process for live restarting (available only when `supervisor` and `enable_detach` parameters are true. otherwise graceful shutdown)
-- **CONT:** dump stacktrace and memory information to /tmp/sigdump-<pid>.log file
+- **CONT:** dump stacktrace and memory information to /tmp/sigdump-<pid>.log file. This can be
+    disabled by including `disable_sigdump: true` in the configuration.
 
 Immediate shutdown and restart send SIGQUIT signal to worker processes which kills the processes.
 Graceful shutdown and restart call `Worker#stop` method and wait for completion of `Worker#run` method.
@@ -463,6 +464,7 @@ Available methods are different depending on `worker_type`. ServerEngine support
   - **daemonize** enables daemonize (default: false)
   - **pid_path** sets the path to pid file (default: don't create pid file)
   - **supervisor** enables supervisor if it's true (default: false)
+  - **disable_sigdump** disables the handling of the `SIGCONT` signal and dumping of the thread (default: false)
   - **daemon_process_name** changes process name ($0) of server or supervisor process
   - **chuser** changes execution user
   - **chgroup** changes execution group

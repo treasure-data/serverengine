@@ -54,6 +54,10 @@ module ServerEngine
     def after_start
     end
 
+    def dump
+      Sigdump.dump unless config[:disable_sigdump]
+    end
+
     def install_signal_handlers
       w = self
       SignalThread.new do |st|
@@ -69,7 +73,7 @@ module ServerEngine
         }
         st.trap(Signals::DETACH) { w.stop }
 
-        st.trap(Signals::DUMP) { Sigdump.dump }
+        st.trap(Signals::DUMP) { w.dump }
       end
     end
 
@@ -77,5 +81,4 @@ module ServerEngine
       run
     end
   end
-
 end

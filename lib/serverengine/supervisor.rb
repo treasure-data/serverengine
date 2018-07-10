@@ -148,6 +148,10 @@ module ServerEngine
       end
     end
 
+    def dump
+      _dump
+    end
+
     def install_signal_handlers
       s = self
       if @command_pipe
@@ -167,7 +171,7 @@ module ServerEngine
             when "DETACH"
               s.detach(true)
             when "DUMP"
-              Sigdump.dump
+              s.dump
             end
           end
         end
@@ -179,7 +183,7 @@ module ServerEngine
           st.trap(Signals::IMMEDIATE_RESTART) { s.restart(false) }
           st.trap(Signals::RELOAD) { s.reload }
           st.trap(Signals::DETACH) { s.detach(true) }
-          st.trap(Signals::DUMP) { Sigdump.dump }
+          st.trap(Signals::DUMP) { s.dump }
         end
       end
     end

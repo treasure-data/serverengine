@@ -70,6 +70,11 @@ module ServerEngine
       nil
     end
 
+    def dump
+      Sigdump.dump unless config[:disable_sigdump]
+      nil
+    end
+
     def install_signal_handlers
       s = self
       if @command_pipe
@@ -89,7 +94,7 @@ module ServerEngine
             when "DETACH"
               s.detach(true)
             when "DUMP"
-              Sigdump.dump
+              s.dump
             end
           end
         end
@@ -104,7 +109,7 @@ module ServerEngine
             st.trap(@config[:signal_graceful_restart] || Signals::GRACEFUL_RESTART) { s.restart(true) }
             st.trap(@config[:signal_immediate_restart] || Signals::IMMEDIATE_RESTART) { s.restart(false) }
             st.trap(@config[:signal_reload] || Signals::RELOAD) { s.reload }
-            st.trap(@config[:signal_dump] || Signals::DUMP) { Sigdump.dump }
+            st.trap(@config[:signal_dump] || Signals::DUMP) { s.dump }
           end
         end
       end
