@@ -70,7 +70,12 @@ module ServerEngine
         # when client changed working directory
         path = File.expand_path(path)
 
-        @server = UNIXServer.new(path)
+        begin
+          old_umask = File.umask(0077) # Protect unix socket from other users
+          @server = UNIXServer.new(path)
+        ensure
+          File.umask(old_umask)
+        end
 
         @thread = Thread.new do
           begin
