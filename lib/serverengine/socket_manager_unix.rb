@@ -96,7 +96,14 @@ module ServerEngine
       end
 
       def send_socket(peer, pid, method, bind, port)
-        sock = send(method, bind, port)  # calls listen_tcp or listen_udp
+        sock = case method
+               when :listen_tcp
+                 listen_tcp(bind, port)
+               when :listen_udp
+                 listen_udp(bind, port)
+               else
+                 raise ArgumentError, "Unknown method: #{method.inspect}"
+               end
 
         SocketManager.send_peer(peer, nil)
 
