@@ -19,6 +19,8 @@ require 'socket'
 require 'ipaddr'
 require 'time'
 require 'securerandom'
+require 'json'
+require 'base64'
 
 module ServerEngine
   module SocketManager
@@ -161,8 +163,8 @@ module ServerEngine
     end
 
     def self.send_peer(peer, obj)
-      data = [SocketManager::INTERNAL_TOKEN, obj]
-      data = Marshal.dump(data)
+      data = [SocketManager::INTERNAL_TOKEN, Base64.strict_encode64(Marshal.dump(obj))]
+      data = JSON.generate(data)
       peer.write [data.bytesize].pack('N')
       peer.write data
     end
@@ -173,11 +175,10 @@ module ServerEngine
 
       len = res.unpack('N').first
       data = peer.read(len)
-      data = Marshal.load(data)
-      token = data.first
-      return nil if SocketManager::INTERNAL_TOKEN != token
+      data = JSON.parse(data)
+      return nil if SocketManager::INTERNAL_TOKEN != data.first
 
-      data.last
+      Marshal.load(Base64.strict_decode64(data.last))
     end
 
     if ServerEngine.windows?
