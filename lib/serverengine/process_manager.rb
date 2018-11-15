@@ -16,6 +16,7 @@
 #    limitations under the License.
 #
 require 'fcntl'
+require 'serverengine/socket_manager'
 
 module ServerEngine
 
@@ -185,6 +186,7 @@ module ServerEngine
           @command_sender_pipe.binmode
           options[:in] = inpipe
         end
+        env['SERVERENGINE_SOCKETMANAGER_INTERNAL_TOKEN'] = SocketManager::INTERNAL_TOKEN
         pid = Process.spawn(env, *args, options)
         if @command_sender == "pipe"
           inpipe.close

@@ -18,9 +18,18 @@
 require 'socket'
 require 'ipaddr'
 require 'time'
+require 'securerandom'
+require 'json'
+require 'base64'
 
 module ServerEngine
   module SocketManager
+    # This token is used for communication between peers. If token is mismatched, messages will be discarded
+    INTERNAL_TOKEN = if ENV.has_key?('SERVERENGINE_SOCKETMANAGER_INTERNAL_TOKEN')
+                       ENV['SERVERENGINE_SOCKETMANAGER_INTERNAL_TOKEN']
+                     else
+                       SecureRandom.hex
+                     end
 
     class Client
       def initialize(path)
@@ -154,7 +163,8 @@ module ServerEngine
     end
 
     def self.send_peer(peer, obj)
-      data = Marshal.dump(obj)
+      data = [SocketManager::INTERNAL_TOKEN, Base64.strict_encode64(Marshal.dump(obj))]
+      data = JSON.generate(data)
       peer.write [data.bytesize].pack('N')
       peer.write data
     end
@@ -165,7 +175,10 @@ module ServerEngine
 
       len = res.unpack('N').first
       data = peer.read(len)
-      Marshal.load(data)
+      data = JSON.parse(data)
+      return nil if SocketManager::INTERNAL_TOKEN != data.first
+
+      Marshal.load(Base64.strict_decode64(data.last))
     end
 
     if ServerEngine.windows?

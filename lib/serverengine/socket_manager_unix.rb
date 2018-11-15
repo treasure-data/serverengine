@@ -70,7 +70,12 @@ module ServerEngine
         # when client changed working directory
         path = File.expand_path(path)
 
-        @server = UNIXServer.new(path)
+        begin
+          old_umask = File.umask(0077) # Protect unix socket from other users
+          @server = UNIXServer.new(path)
+        ensure
+          File.umask(old_umask)
+        end
 
         @thread = Thread.new do
           begin
@@ -96,7 +101,14 @@ module ServerEngine
       end
 
       def send_socket(peer, pid, method, bind, port)
-        sock = send(method, bind, port)  # calls listen_tcp or listen_udp
+        sock = case method
+               when :listen_tcp
+                 listen_tcp(bind, port)
+               when :listen_udp
+                 listen_udp(bind, port)
+               else
+                 raise ArgumentError, "Unknown method: #{method.inspect}"
+               end
 
         SocketManager.send_peer(peer, nil)
 
