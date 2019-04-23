@@ -1,3 +1,7 @@
+2019-04-22 version 2.1.1:
+
+* Fix bug to ignore SIGDUMP_SIGNAL
+
 2018-11-14 version 2.1.0:
 
 * Improve socket manager security
