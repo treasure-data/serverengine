@@ -26,6 +26,6 @@ module ServerEngine
     IMMEDIATE_RESTART = :HUP
     RELOAD = :USR2
     DETACH = :INT
-    DUMP = :CONT
+    DUMP = ENV.has_key?('SIGDUMP_SIGNAL') ? ENV['SIGDUMP_SIGNAL'].to_sym : :CONT
   end
 end
