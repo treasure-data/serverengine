@@ -67,7 +67,7 @@ module ServerEngine
 
     def signal_handler_main(sig)
       # here always creates new thread to avoid
-      # complicated race conditin in signal handlers
+      # complicated race condition in signal handlers
       Thread.new do
         begin
           enqueue(sig)
