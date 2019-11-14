@@ -50,7 +50,10 @@ module ServerEngine
       private
 
       def listen_tcp_new(bind_ip, port)
-        sock = TCPServer.new(bind_ip.to_s, port)
+        # TCPServer.new doesn't set IPV6_V6ONLY flag, so use tcp_server_sockets instead.
+        tsock = Socket.tcp_server_sockets(bind_ip.to_s, port).first
+        tsock.autoclose = false
+        sock = TCPServer.for_fd(tsock.fileno)
         sock.listen(Socket::SOMAXCONN)  # TODO make backlog configurable if necessary
         return sock
       end
