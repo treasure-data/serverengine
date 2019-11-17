@@ -50,9 +50,11 @@ module ServerEngine
       private
 
       def listen_tcp_new(bind_ip, port)
-        sock = TCPServer.new(bind_ip.to_s, port)
-        sock.listen(Socket::SOMAXCONN)  # TODO make backlog configurable if necessary
-        return sock
+        # TCPServer.new doesn't set IPV6_V6ONLY flag, so use Addrinfo class instead.
+        # TODO: make backlog configurable if necessary
+        tsock = Addrinfo.tcp(bind_ip.to_s, port).listen(::Socket::SOMAXCONN)
+        tsock.autoclose = false
+        TCPServer.for_fd(tsock.fileno)
       end
 
       def listen_udp_new(bind_ip, port)
