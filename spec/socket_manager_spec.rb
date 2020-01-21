@@ -155,7 +155,27 @@ describe ServerEngine::SocketManager do
         test_state(:is_udp_socket).should == 1
         test_state(:udp_data_sent).should == 1
       end
-    end if (TCPServer.open("::1",0) rescue nil)
+    end if (TCPServer.open("::1", 0) rescue nil)
+
+    unless ServerEngine.windows?
+      context 'using ipv4/ipv6' do
+        it 'can bind ipv4/ipv6 together' do
+          server = SocketManager::Server.open(server_path)
+          client = ServerEngine::SocketManager::Client.new(server_path)
+
+          tcp_v4 = client.listen_tcp('0.0.0.0', test_port)
+          udp_v4 = client.listen_udp('0.0.0.0', test_port)
+          tcp_v6 = client.listen_tcp('::', test_port)
+          udp_v6 = client.listen_udp('::', test_port)
+
+          tcp_v4.close
+          udp_v4.close
+          tcp_v6.close
+          udp_v6.close
+          server.close
+        end
+      end if (TCPServer.open("::", 0) rescue nil)
+    end
   end
 
   if ServerEngine.windows?
