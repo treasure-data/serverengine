@@ -1,3 +1,8 @@
+2020-01-24 version 2.2.1:
+
+* Fix IPv6 dual-stack mode issue for UDP
+* experimental: Add SERVERENGINE_USE_SOCKET_REUSEPORT envvar to enable SO_REUSEPORT
+
 2019-11-16 version 2.2.0:
 
 * Fix IPv6 dual-stack mode issue for TCP
