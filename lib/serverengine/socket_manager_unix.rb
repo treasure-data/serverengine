@@ -50,11 +50,23 @@ module ServerEngine
       private
 
       def listen_tcp_new(bind_ip, port)
-        # TCPServer.new doesn't set IPV6_V6ONLY flag, so use Addrinfo class instead.
-        # TODO: make backlog configurable if necessary
-        tsock = Addrinfo.tcp(bind_ip.to_s, port).listen(::Socket::SOMAXCONN)
-        tsock.autoclose = false
-        TCPServer.for_fd(tsock.fileno)
+        if ENV['SERVERENGINE_USE_SOCKET_REUSEPORT'] == '1'
+          # Based on Addrinfo#listen
+          tsock = Socket.new(bind_ip.ipv6? ? ::Socket::AF_INET6 : ::Socket::AF_INET, ::Socket::SOCK_STREAM, 0)
+          tsock.ipv6only! if bind_ip.ipv6?
+          tsock.setsockopt(:SOCKET, :REUSEPORT, true)
+          tsock.setsockopt(:SOCKET, :REUSEADDR, true)
+          tsock.bind(Addrinfo.tcp(bind_ip.to_s, port))
+          tsock.listen(::Socket::SOMAXCONN)
+          tsock.autoclose = false
+          TCPServer.for_fd(tsock.fileno)
+        else
+          # TCPServer.new doesn't set IPV6_V6ONLY flag, so use Addrinfo class instead.
+          # TODO: make backlog configurable if necessary
+          tsock = Addrinfo.tcp(bind_ip.to_s, port).listen(::Socket::SOMAXCONN)
+          tsock.autoclose = false
+          TCPServer.for_fd(tsock.fileno)
+        end
       end
 
       def listen_udp_new(bind_ip, port)
