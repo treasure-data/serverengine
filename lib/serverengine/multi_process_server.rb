@@ -120,8 +120,17 @@ module ServerEngine
       end
 
       def send_reload
-        @pmon.send_signal(@reload_signal) if @pmon
+        return nil unless @pmon
+        if @pmon.command_sender_pipe
+          send_command("RELOAD\n")
+        else
+          @pmon.send_signal(@reload_signal)
+        end
         nil
+      end
+
+      def send_command(command)
+        @pmon.send_command(command) if @pmon
       end
 
       def join

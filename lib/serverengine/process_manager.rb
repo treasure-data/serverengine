@@ -71,7 +71,6 @@ module ServerEngine
     attr_reader :enable_heartbeat, :auto_heartbeat
 
     attr_accessor :command_sender
-    attr_reader :command_sender_pipe
 
     CONFIG_PARAMS = {
       heartbeat_interval: 1,
@@ -180,10 +179,11 @@ module ServerEngine
           end
         end
 
+        command_sender_pipe = nil
         if @command_sender == "pipe"
-          inpipe, @command_sender_pipe = IO.pipe
-          @command_sender_pipe.sync = true
-          @command_sender_pipe.binmode
+          inpipe, command_sender_pipe = IO.pipe
+          command_sender_pipe.sync = true
+          command_sender_pipe.binmode
           options[:in] = inpipe
         end
         env['SERVERENGINE_SOCKETMANAGER_INTERNAL_TOKEN'] = SocketManager::INTERNAL_TOKEN
@@ -193,6 +193,7 @@ module ServerEngine
         end
 
         m = Monitor.new(pid, monitor_options)
+        m.command_sender_pipe = command_sender_pipe
 
         @monitors << m
 
@@ -307,9 +308,11 @@ module ServerEngine
         @graceful_kill_start_time = nil
         @immediate_kill_start_time = nil
         @kill_count = 0
+
+        @command_sender_pipe = nil
       end
 
-      attr_accessor :last_heartbeat_time
+      attr_accessor :last_heartbeat_time, :command_sender_pipe
       attr_reader :pid
 
       def heartbeat_delay
@@ -327,6 +330,10 @@ module ServerEngine
         rescue #Errno::ECHILD, Errno::ESRCH, Errno::EPERM
           return false
         end
+      end
+
+      def send_command(command)
+        @command_sender_pipe.write(command) if @command_sender_pipe
       end
 
       def try_join
@@ -366,15 +373,25 @@ module ServerEngine
       end
 
       def start_graceful_stop!
-        now = Time.now
-        @next_kill_time ||= now
-        @graceful_kill_start_time ||= now
+        if ServerEngine.windows?
+          # heartbeat isn't supported on Windows
+          send_command("GRACEFUL_STOP\n")
+        else
+          now = Time.now
+          @next_kill_time ||= now
+          @graceful_kill_start_time ||= now
+        end
       end
 
       def start_immediate_stop!
-        now = Time.now
-        @next_kill_time ||= now
-        @immediate_kill_start_time ||= now
+        if ServerEngine.windows?
+          # heartbeat isn't supported on Windows
+          system("taskkill /f /pid #{@pid}")
+        else
+          now = Time.now
+          @next_kill_time ||= now
+          @immediate_kill_start_time ||= now
+        end
       end
 
       def tick(now=Time.now)
