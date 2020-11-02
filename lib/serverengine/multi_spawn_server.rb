@@ -46,13 +46,6 @@ module ServerEngine
       @pm.command_sender = @command_sender
     end
 
-    def stop(stop_graceful)
-      if @command_sender == "pipe"
-        @pm.command_sender_pipe.write(stop_graceful ? "GRACEFUL_STOP\n" : "IMMEDIATE_STOP\n")
-      end
-      super
-    end
-
     def run
       super
     ensure
