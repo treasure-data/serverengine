@@ -25,6 +25,13 @@ describe ServerEngine::SocketManager do
         path = SocketManager::Server.generate_path
         expect(path).to be_between(49152, 65535)
       end
+
+      it 'can be changed via environment variable' do
+        ENV['SERVERENGINE_SOCKETMANAGER_PORT'] = '54321'
+        path = SocketManager::Server.generate_path
+        expect(path).to be 54321
+        ENV.delete('SERVERENGINE_SOCKETMANAGER_PORT')
+      end
     end
   else
     context 'Server.generate_path' do

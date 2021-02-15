@@ -72,6 +72,9 @@ module ServerEngine
     class Server
       def self.generate_path
         if ServerEngine.windows?
+          port = ENV['SERVERENGINE_SOCKETMANAGER_PORT']
+          return port.to_i if port
+
           for port in get_dynamic_port_range
             if `netstat -na | findstr "#{port}"`.length == 0
               return port
