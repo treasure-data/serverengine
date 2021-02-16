@@ -191,7 +191,7 @@ describe ServerEngine::Supervisor do
         sv, t = start_supervisor(RunErrorWorker, server_restart_wait: 1, command_sender: sender)
 
         begin
-          sleep 2.2
+          sleep 2.5
         ensure
           sv.stop(true)
           t.join
