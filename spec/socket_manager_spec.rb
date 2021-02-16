@@ -19,7 +19,21 @@ describe ServerEngine::SocketManager do
     File.unlink(server_path) if server_path.is_a?(String) && File.exist?(server_path)
   end
 
-  if !ServerEngine.windows?
+  if ServerEngine.windows?
+    context 'Server.generate_path' do
+      it 'returns socket path as port number' do
+        path = SocketManager::Server.generate_path
+        expect(path).to be_between(49152, 65535)
+      end
+
+      it 'can be changed via environment variable' do
+        ENV['SERVERENGINE_SOCKETMANAGER_PORT'] = '54321'
+        path = SocketManager::Server.generate_path
+        expect(path).to be 54321
+        ENV.delete('SERVERENGINE_SOCKETMANAGER_PORT')
+      end
+    end
+  else
     context 'Server.generate_path' do
       it 'returns socket path under /tmp' do
         path = SocketManager::Server.generate_path

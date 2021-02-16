@@ -72,7 +72,10 @@ module ServerEngine
     class Server
       def self.generate_path
         if ServerEngine.windows?
-          for port in 10000..65535
+          port = ENV['SERVERENGINE_SOCKETMANAGER_PORT']
+          return port.to_i if port
+
+          for port in get_dynamic_port_range
             if `netstat -na | findstr "#{port}"`.length == 0
               return port
             end
@@ -159,6 +162,40 @@ module ServerEngine
         end
       ensure
         peer.close
+      end
+
+      if ServerEngine.windows?
+        def self.valid_dynamic_port_range(start_port, end_port)
+          return false if start_port < 1025 or start_port > 65535
+          return false if end_port < 1025 or end_port > 65535
+          return false if start_port > end_port
+          true
+        end
+
+        def self.get_dynamic_port_range
+          numbers = []
+          # Example output of netsh (actual output is localized):
+          #
+          # Protocol tcp Dynamic Port Range
+          # ---------------------------------
+          # Start Port      : 49152
+          # Number of Ports : 16384
+          #
+          str = `netsh int ipv4 show dynamicport tcp`.force_encoding("ASCII-8BIT")
+          str.each_line { |line| numbers << $1.to_i if line.match(/.*: (\d+)/) }
+
+          start_port, n_ports = numbers[0], numbers[1]
+          end_port = start_port + n_ports - 1
+
+          if valid_dynamic_port_range(start_port, end_port)
+            return start_port..end_port
+          else
+            # The default dynamic port range is 49152 - 65535 as of Windows Vista
+            # and Windows Server 2008.
+            # https://docs.microsoft.com/en-us/troubleshoot/windows-server/networking/default-dynamic-port-range-tcpip-chang
+            return 49152..65535
+          end
+        end
       end
     end
 
