@@ -254,7 +254,7 @@ shared_context 'test server and worker' do
   before { reset_test_state }
 
   def wait_for_fork
-    sleep 0.8
+    sleep 1.5
   end
 
   def wait_for_stop
