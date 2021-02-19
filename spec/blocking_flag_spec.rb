@@ -20,10 +20,16 @@ describe ServerEngine::BlockingFlag do
   it 'wait_for_set timeout' do
     start = Time.now
 
-    subject.wait_for_set(0.01)
+    subject.wait_for_set(0.1)
     elapsed = Time.now - start
 
-    elapsed.should >= 0.01
+    if ServerEngine.windows? && ENV['CI'] == 'True'
+      # timer seems low accuracy on Windows CI container, often a bit shorter
+      # than expected
+      elapsed.should >= 0.1 * 0.95
+    else
+      elapsed.should >= 0.1
+    end
   end
 
   it 'wait_for_reset timeout' do
@@ -31,10 +37,16 @@ describe ServerEngine::BlockingFlag do
 
     start = Time.now
 
-    subject.wait_for_reset(0.01)
+    subject.wait_for_reset(0.1)
     elapsed = Time.now - start
 
-    elapsed.should >= 0.01
+    if ServerEngine.windows? && ENV['CI'] == 'True'
+      # timer seems low accuracy on Windows CI container, often a bit shorter
+      # than expected
+      elapsed.should >= 0.1 * 0.95
+    else
+      elapsed.should >= 0.1
+    end
   end
 
   it 'wait' do
