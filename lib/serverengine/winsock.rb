@@ -78,6 +78,19 @@ module ServerEngine
       end
     end
 
+    def self.last_error
+      # On Ruby 3.0 calling WSAGetLastError here can't retrieve correct error
+      # code because Ruby's internal code resets it.
+      # See also:
+      # * https://github.com/ruby/fiddle/issues/72
+      # * https://bugs.ruby-lang.org/issues/17813
+      if Fiddle.respond_to?(:win32_last_socket_error)
+        Fiddle.win32_last_socket_error || 0
+      else
+        self.WSAGetLastError
+      end
+    end
+
     INVALID_SOCKET = -1
   end
 
@@ -99,7 +112,7 @@ module ServerEngine
     extern "int rb_w32_map_errno(int)"
 
     def self.raise_last_error(name)
-      errno = rb_w32_map_errno(WinSock.WSAGetLastError)
+      errno = rb_w32_map_errno(WinSock.last_error)
       raise SystemCallError.new(name, errno)
     end
 
