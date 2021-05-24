@@ -21,13 +21,10 @@ jobs:
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
-    - name: install optional dependencies
-      if: ${{ matrix.test-optional }}
-      run: gem install rb-inotify
     - name: unit testing
       env:
         CI: true
       run: |
         gem install bundler rake
-        bundle install --jobs 4 --retry 3
+        bundle install --jobs 4 --retry 3 ${{ matrix.test-optional && '--with inotify' || '' }}
         bundle exec rake spec
