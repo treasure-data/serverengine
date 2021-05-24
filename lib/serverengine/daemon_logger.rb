@@ -116,10 +116,10 @@ module ServerEngine
         @inotify.close if @inotify
         @inotify = INotify::Notifier.new
         @inotify.watch(target, :move_self) do |event|
-          if logdev.respond_to?(:filename)
+          if @logdev.respond_to?(:filename)
             @logdev.close
             @logdev.reopen(@logdev.filename)
-          elsif logdev.respond_to?(:path)
+          elsif @logdev.respond_to?(:path)
             @logdev.close
             @logdev.reopen(@logdev.path)
           else
