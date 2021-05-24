@@ -1,3 +1,7 @@
+2021-05-24 version 2.2.4:
+
+* Ensure to get correct Win32 socket error on Ruby 3.0
+
 2021-02-17 version 2.2.3:
 
 * Change SocketManager's port assignment strategy on Windows
