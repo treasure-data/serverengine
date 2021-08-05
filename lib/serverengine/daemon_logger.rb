@@ -115,6 +115,11 @@ module ServerEngine
       if target
         @inotify.close if @inotify
         @inotify = INotify::Notifier.new
+        def @inotify.readpartial(size)
+          @handle.read_nonblock(size)
+        rescue Errno::EBADF, Errno::EAGAIN, EWOULDBLOCK
+          nil
+        end
         @inotify.watch(target, :move_self) do |event|
           if @logdev.respond_to?(:filename)
             @logdev.close
