@@ -142,7 +142,11 @@ module ServerEngine
         return false unless @pmon
 
         if stat = @pmon.try_join
-          @worker.logger.info "Worker #{@wid} finished#{@stop ? '' : ' unexpectedly'} with #{ServerEngine.format_join_status(stat)}"
+          if @stop
+            @worker.logger.info "Worker #{@wid} finished with #{ServerEngine.format_join_status(stat)}"
+          else
+            @worker.logger.error "Worker #{@wid} finished unexpectedly with #{ServerEngine.format_join_status(stat)}"
+          end
           if stat.is_a?(Process::Status) && stat.exited? && @unrecoverable_exit_codes.include?(stat.exitstatus)
             @unrecoverable_exit = true
             @exitstatus = stat.exitstatus
