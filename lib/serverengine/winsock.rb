@@ -21,6 +21,7 @@ module ServerEngine
     require 'fiddle/import'
     require 'fiddle/types'
     require 'socket'
+    require 'rbconfig'
 
     extend Fiddle::Importer
 
@@ -101,14 +102,7 @@ module ServerEngine
     extern "int GetModuleFileNameA(int, char *, int)"
     extern "int CloseHandle(int)"
 
-    ruby_bin_path_buf = Fiddle::Pointer.malloc(1000)
-    GetModuleFileNameA(0, ruby_bin_path_buf, ruby_bin_path_buf.size)
-
-    ruby_bin_path = ruby_bin_path_buf.to_s.gsub(/\\/, '/')
-    ruby_dll_paths = File.dirname(ruby_bin_path) + '/*msvcr*ruby*.dll'
-    ruby_dll_path = Dir.glob(ruby_dll_paths).first
-    dlload ruby_dll_path
-
+    dlload RbConfig::CONFIG['LIBRUBY_SO']
     extern "int rb_w32_map_errno(int)"
 
     def self.raise_last_error(name)
