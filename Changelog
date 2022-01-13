@@ -1,3 +1,7 @@
+2022-01-13 version 2.2.5:
+
+* Fix DLL load error on Ruby 3.1 on Windows
+
 2021-05-24 version 2.2.4:
 
 * Ensure to get correct Win32 socket error on Ruby 3.0
