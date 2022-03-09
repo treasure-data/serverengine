@@ -22,6 +22,8 @@ require 'securerandom'
 require 'json'
 require 'base64'
 
+require_relative 'utils' # for ServerEngine.windows?
+
 module ServerEngine
   module SocketManager
     # This token is used for communication between peers. If token is mismatched, messages will be discarded
