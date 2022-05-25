@@ -55,8 +55,8 @@ module ServerEngine
 
     def run
       while true
-        num_alive = keepalive_workers
-        break if num_alive == 0
+        num_alive_or_restarting = keepalive_workers
+        break if num_alive_or_restarting == 0
         wait_tick
       end
     end
@@ -97,12 +97,12 @@ module ServerEngine
     end
 
     def keepalive_workers
-      num_alive = 0
+      num_alive_or_restarting = 0
 
       @monitors.each_with_index do |m,wid|
         if m && m.alive?
           # alive
-          num_alive += 1
+          num_alive_or_restarting += 1
 
         elsif m && m.respond_to?(:recoverable?) && !m.recoverable?
           # exited, with unrecoverable exit code
@@ -122,7 +122,7 @@ module ServerEngine
             else
               start_new_worker(wid)
             end
-            num_alive += 1
+            num_alive_or_restarting += 1
           end
 
         elsif m
@@ -131,7 +131,7 @@ module ServerEngine
         end
       end
 
-      return num_alive
+      return num_alive_or_restarting
     end
 
     def start_new_worker(wid)
