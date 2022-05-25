@@ -96,7 +96,7 @@ module ServerEngine
       @pm.tick(0.5)
     end
 
-    class WorkerMonitor
+    class WorkerMonitor < WorkerMonitorBase
       def initialize(worker, wid, pmon, reload_signal = Signals::RELOAD, unrecoverable_exit_codes: [])
         @worker = worker
         @wid = wid
@@ -106,8 +106,6 @@ module ServerEngine
         @unrecoverable_exit = false
         @exitstatus = nil
       end
-
-      attr_reader :exitstatus
 
       def send_stop(stop_graceful)
         @stop = true
@@ -160,6 +158,10 @@ module ServerEngine
 
       def recoverable?
         !@unrecoverable_exit
+      end
+
+      def exitstatus
+        @exitstatus
       end
     end
   end

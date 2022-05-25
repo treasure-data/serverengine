@@ -35,7 +35,7 @@ module ServerEngine
       return WorkerMonitor.new(w, thread)
     end
 
-    class WorkerMonitor
+    class WorkerMonitor < WorkerMonitorBase
       def initialize(worker, thread)
         @worker = worker
         @thread = thread
@@ -73,6 +73,10 @@ module ServerEngine
 
       def recoverable?
         true
+      end
+
+      def exitstatus
+        nil
       end
     end
   end

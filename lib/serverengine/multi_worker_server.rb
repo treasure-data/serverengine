@@ -147,4 +147,29 @@ module ServerEngine
     end
   end
 
+  class WorkerMonitorBase
+    def send_stop(stop_graceful)
+      raise NotImplementedError, "Must override this"
+    end
+
+    def send_reload
+      raise NotImplementedError, "Must override this"
+    end
+
+    def join
+      raise NotImplementedError, "Must override this"
+    end
+
+    def alive?
+      raise NotImplementedError, "Must override this"
+    end
+
+    def recoverable?
+      raise NotImplementedError, "Must override this"
+    end
+
+    def exitstatus
+      raise NotImplementedError, "Must override this"
+    end
+  end
 end
