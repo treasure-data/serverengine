@@ -37,6 +37,7 @@ module ServerEngine
 
     class WorkerMonitor < WorkerMonitorBase
       def initialize(worker, thread)
+        super()
         @worker = worker
         @thread = thread
       end
