@@ -482,6 +482,7 @@ Available methods are different depending on `worker_type`. ServerEngine support
   - **workers** sets number of workers (default: 1) [dynamic reloadable]
   - **start_worker_delay** sets wait time before starting a new worker (default: 0) [dynamic reloadable]
   - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2) [dynamic reloadable]
+  - **restart_worker_interval** sets wait time before restarting a stopped worker (default: 0) [dynamic reloadable]
 - Multiprocess server: available only when `worker_type` is "process"
   - **worker_process_name** changes process name ($0) of workers [dynamic reloadable]
   - **worker_heartbeat_interval** sets interval of heartbeats in seconds (default: 1.0) [dynamic reloadable]

@@ -85,6 +85,7 @@ module ServerEngine
 
       @start_worker_delay = @config[:start_worker_delay] || 0
       @start_worker_delay_rand = @config[:start_worker_delay_rand] || 0.2
+      @restart_worker_interval = @config[:restart_worker_interval] || 0
 
       scale_workers(@config[:workers] || 1)
 
@@ -116,7 +117,11 @@ module ServerEngine
         elsif wid < @num_workers
           # scale up or reboot
           unless @stop
-            @monitors[wid] = delayed_start_worker(wid)
+            if m
+              restart_worker(wid)
+            else
+              start_new_worker(wid)
+            end
             num_alive += 1
           end
 
@@ -127,6 +132,25 @@ module ServerEngine
       end
 
       return num_alive
+    end
+
+    def start_new_worker(wid)
+      delayed_start_worker(wid)
+    end
+
+    def restart_worker(wid)
+      m = @monitors[wid]
+
+      if m.restarting?
+        delayed_start_worker(wid) if m.restart_interval_passed?
+        return
+      end
+
+      if @restart_worker_interval > 0
+        m.set_restart_interval(@restart_worker_interval)
+      else
+        delayed_start_worker(wid)
+      end
     end
 
     def delayed_start_worker(wid)
@@ -143,11 +167,39 @@ module ServerEngine
         @last_start_worker_time = now
       end
 
-      start_worker(wid)
+      @monitors[wid] = start_worker(wid)
     end
   end
 
   class WorkerMonitorBase
+    def initialize
+      @is_restarting = false
+      @restart_interval = nil
+      @restart_initial_time = nil
+    end
+
+    def set_restart_interval(interval)
+      @is_restarting = true
+      @restart_interval = interval
+      @restart_initial_time = Time.now.to_f
+    end
+
+    def restarting?
+      @is_restarting
+    end
+
+    def restart_interval_passed?
+      return false unless restarting?
+
+      passed_time = Time.now.to_f - @restart_initial_time
+
+      # Give up waiting because the time has changed or some other
+      # unexpected situation may occur.
+      return true if passed_time < 0
+
+      return @restart_interval <= passed_time
+    end
+
     def send_stop(stop_graceful)
       raise NotImplementedError, "Must override this"
     end

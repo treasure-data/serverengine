@@ -98,6 +98,7 @@ module ServerEngine
 
     class WorkerMonitor < WorkerMonitorBase
       def initialize(worker, wid, pmon, reload_signal = Signals::RELOAD, unrecoverable_exit_codes: [])
+        super()
         @worker = worker
         @wid = wid
         @pmon = pmon
