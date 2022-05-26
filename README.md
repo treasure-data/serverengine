@@ -480,7 +480,7 @@ Available methods are different depending on `worker_type`. ServerEngine support
   - **server_detach_wait** sets wait time before starting live restart (default: 10.0) [dynamic reloadable]
 - Multithread server and multiprocess server: available only when `worker_type` is thread or process
   - **workers** sets number of workers (default: 1) [dynamic reloadable]
-  - **start_worker_delay** sets wait time before starting a new worker (default: 0) [dynamic reloadable]
+  - **start_worker_delay** sets the delay between each worker-start when starting/restarting multiple workers at once (default: 0) [dynamic reloadable]
   - **start_worker_delay_rand** randomizes start_worker_delay at this ratio (default: 0.2) [dynamic reloadable]
   - **restart_worker_interval** sets wait time before restarting a stopped worker (default: 0) [dynamic reloadable]
 - Multiprocess server: available only when `worker_type` is "process"
