@@ -53,7 +53,7 @@ describe ServerEngine::MultiSpawnServer do
           wait_for_fork
 
           Timeout.timeout(5) do
-            sleep(0.5) until test_state(:worker_run) == workers
+            sleep(0.5) until monitors.count { |m| m && m.alive? } == workers
           end
 
           monitors.each do |m|
@@ -81,7 +81,7 @@ describe ServerEngine::MultiSpawnServer do
           wait_for_fork
 
           Timeout.timeout(5) do
-            sleep(0.5) until test_state(:worker_run) == workers
+            sleep(0.5) until monitors.count { |m| m && m.alive? } == workers
           end
 
           monitors.each do |m|
@@ -114,7 +114,7 @@ describe ServerEngine::MultiSpawnServer do
 
           # This is delayed too, so set longer timeout.
           Timeout.timeout(start_worker_delay * workers) do
-            sleep(0.5) until test_state(:worker_run) == workers
+            sleep(0.5) until monitors.count { |m| m && m.alive? } == workers
           end
 
           sleep(start_worker_delay)
@@ -149,7 +149,7 @@ describe ServerEngine::MultiSpawnServer do
 
           # This is delayed too, so set longer timeout.
           Timeout.timeout(start_worker_delay * workers) do
-            sleep(0.5) until test_state(:worker_run) == workers
+            sleep(0.5) until monitors.count { |m| m && m.alive? } == workers
           end
 
           monitors.each do |m|
