@@ -60,7 +60,7 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          wait_for_restart
+          sleep(3)
 
           monitors.count { |m| m.alive? }.should == workers
         ensure
