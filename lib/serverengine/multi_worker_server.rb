@@ -141,13 +141,14 @@ module ServerEngine
     def restart_worker(wid)
       m = @monitors[wid]
 
-      if m.restarting?
-        delayed_start_worker(wid) if m.restart_interval_passed?
+      is_already_restarting = !m.restart_at.nil?
+      if is_already_restarting
+        delayed_start_worker(wid) if m.restart_at <= Time.now()
         return
       end
 
       if @restart_worker_interval > 0
-        m.set_restart_interval(@restart_worker_interval)
+        m.restart_at = Time.now() + @restart_worker_interval
       else
         delayed_start_worker(wid)
       end
@@ -171,57 +172,4 @@ module ServerEngine
     end
   end
 
-  class WorkerMonitorBase
-    def initialize
-      @is_restarting = false
-      @restart_interval = nil
-      @restart_initial_time = nil
-    end
-
-    def set_restart_interval(interval)
-      @is_restarting = true
-      @restart_interval = interval
-      @restart_initial_time = Time.now.to_f
-    end
-
-    def restarting?
-      @is_restarting
-    end
-
-    def restart_interval_passed?
-      return false unless restarting?
-
-      passed_time = Time.now.to_f - @restart_initial_time
-
-      # Give up waiting because the time has changed or some other
-      # unexpected situation may occur.
-      return true if passed_time < 0
-
-      return @restart_interval <= passed_time
-    end
-
-    def send_stop(stop_graceful)
-      raise NotImplementedError, "Must override this"
-    end
-
-    def send_reload
-      raise NotImplementedError, "Must override this"
-    end
-
-    def join
-      raise NotImplementedError, "Must override this"
-    end
-
-    def alive?
-      raise NotImplementedError, "Must override this"
-    end
-
-    def recoverable?
-      raise NotImplementedError, "Must override this"
-    end
-
-    def exitstatus
-      raise NotImplementedError, "Must override this"
-    end
-  end
 end

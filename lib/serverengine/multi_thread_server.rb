@@ -35,12 +35,14 @@ module ServerEngine
       return WorkerMonitor.new(w, thread)
     end
 
-    class WorkerMonitor < WorkerMonitorBase
+    class WorkerMonitor
       def initialize(worker, thread)
-        super()
         @worker = worker
         @thread = thread
+        @restart_at = nil
       end
+
+      attr_accessor :restart_at
 
       def send_stop(stop_graceful)
         Thread.new do
@@ -74,10 +76,6 @@ module ServerEngine
 
       def recoverable?
         true
-      end
-
-      def exitstatus
-        nil
       end
     end
   end
