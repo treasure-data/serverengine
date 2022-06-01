@@ -165,8 +165,9 @@ module TestWorker
 
   def run
     incr_test_state :worker_run
-    5.times do
-      # repeats 5 times because signal handlers
+    # This means this worker will automatically finish after 50 seconds.
+    10.times do
+      # repeats multiple times because signal handlers
       # interrupts wait
       @stop_flag.wait(5.0)
     end
