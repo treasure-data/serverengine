@@ -1,4 +1,5 @@
 require 'timeout'
+require 'timecop'
 
 describe ServerEngine::MultiSpawnServer do
   include_context 'test server and worker'
@@ -80,6 +81,7 @@ describe ServerEngine::MultiSpawnServer do
         begin
           wait_for_fork
 
+          # Wait for initial starting
           Timeout.timeout(5) do
             sleep(0.5) until monitors.count { |m| m && m.alive? } == workers
           end
@@ -88,12 +90,21 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
+          # Wait for all workers to stop
+          Timeout.timeout(3) do
+            sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
+          end
+
+          Timecop.freeze
+
           mergin_time = 3
 
-          sleep(restart_worker_interval - mergin_time)
+          Timecop.freeze(Time.now + restart_worker_interval - mergin_time)
+          sleep(1)
           monitors.count { |m| m.alive? }.should == 0
 
-          sleep(2 * mergin_time)
+          Timecop.freeze(Time.now + 2 * mergin_time)
+          sleep(1)
           monitors.count { |m| m.alive? }.should == workers
         ensure
           server.stop(true)
@@ -103,7 +114,7 @@ describe ServerEngine::MultiSpawnServer do
     end
 
     context 'with only start_worker_delay' do
-      let(:start_worker_delay) { 10 }
+      let(:start_worker_delay) { 3 }
       let(:restart_worker_interval) { 0 }
 
       it do
@@ -112,23 +123,26 @@ describe ServerEngine::MultiSpawnServer do
         begin
           wait_for_fork
 
-          # This is delayed too, so set longer timeout.
+          # Initial starts are delayed too, so set longer timeout.
+          # (`start_worker_delay` uses `sleep` inside, so Timecop can't skip this wait.)
           Timeout.timeout(start_worker_delay * workers) do
             sleep(0.5) until monitors.count { |m| m && m.alive? } == workers
           end
 
-          sleep(start_worker_delay)
+          # Skip time to avoid getting a delay for the initial starts.
+          Timecop.travel(Time.now + start_worker_delay)
 
           monitors.each do |m|
             m.send_stop(true)
           end
 
-          mergin_time = 3
+          sleep(3)
 
-          sleep(start_worker_delay - mergin_time)
+          # The first worker should restart immediately.
           monitors.count { |m| m.alive? }.should satisfy { |c| 0 < c && c < workers }
 
-          sleep(start_worker_delay * (workers - 1))
+          # `start_worker_delay` uses `sleep` inside, so Timecop can't skip this wait.
+          sleep(start_worker_delay * workers)
           monitors.count { |m| m.alive? }.should == workers
         ensure
           server.stop(true)
@@ -138,7 +152,7 @@ describe ServerEngine::MultiSpawnServer do
     end
 
     context 'with both options' do
-      let(:start_worker_delay) { 10 }
+      let(:start_worker_delay) { 3 }
       let(:restart_worker_interval) { 10 }
 
       it do
@@ -147,7 +161,8 @@ describe ServerEngine::MultiSpawnServer do
         begin
           wait_for_fork
 
-          # This is delayed too, so set longer timeout.
+          # Initial starts are delayed too, so set longer timeout.
+          # (`start_worker_delay` uses `sleep` inside, so Timecop can't skip this wait.)
           Timeout.timeout(start_worker_delay * workers) do
             sleep(0.5) until monitors.count { |m| m && m.alive? } == workers
           end
@@ -156,15 +171,25 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
+          # Wait for all workers to stop
+          Timeout.timeout(3) do
+            sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
+          end
+
+          Timecop.freeze
+
           mergin_time = 3
 
-          sleep(restart_worker_interval - mergin_time)
+          Timecop.freeze(Time.now + restart_worker_interval - mergin_time)
+          sleep(1)
           monitors.count { |m| m.alive? }.should == 0
 
-          sleep(2 * mergin_time)
+          Timecop.travel(Time.now + 2 * mergin_time)
+          sleep(1)
           monitors.count { |m| m.alive? }.should satisfy { |c| 0 < c && c < workers }
 
-          sleep(start_worker_delay * (workers - 1))
+          # `start_worker_delay` uses `sleep` inside, so Timecop can't skip this wait.
+          sleep(start_worker_delay * workers)
           monitors.count { |m| m.alive? }.should == workers
         ensure
           server.stop(true)

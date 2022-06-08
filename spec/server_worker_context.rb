@@ -1,6 +1,7 @@
 
 require 'thread'
 require 'yaml'
+require 'timecop'
 
 def reset_test_state
   FileUtils.mkdir_p 'tmp'
@@ -253,6 +254,7 @@ end
 
 shared_context 'test server and worker' do
   before { reset_test_state }
+  after { Timecop.return }
 
   def wait_for_fork
     sleep 1.5
