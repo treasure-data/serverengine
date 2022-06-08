@@ -61,9 +61,12 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          sleep(3)
-
-          monitors.count { |m| m.alive? }.should == workers
+          # On Windows, it takes some time to stop all multiple processes, so allow leeway to judge.
+          -> {
+            Timeout.timeout(5) do
+              sleep(0.5) until monitors.count { |m| m.alive? } == workers
+            end
+          }.should_not raise_error, "Not all workers restarted correctly."
         ensure
           server.stop(true)
           t.join
@@ -91,7 +94,7 @@ describe ServerEngine::MultiSpawnServer do
           end
 
           # Wait for all workers to stop
-          Timeout.timeout(3) do
+          Timeout.timeout(5) do
             sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
           end
 
@@ -100,12 +103,16 @@ describe ServerEngine::MultiSpawnServer do
           mergin_time = 3
 
           Timecop.freeze(Time.now + restart_worker_interval - mergin_time)
-          sleep(1)
+          sleep(1.5)
           monitors.count { |m| m.alive? }.should == 0
 
           Timecop.freeze(Time.now + 2 * mergin_time)
-          sleep(1)
-          monitors.count { |m| m.alive? }.should == workers
+          # On Windows, it takes some time to stop all multiple processes, so allow leeway to judge.
+          -> {
+            Timeout.timeout(5) do
+              sleep(0.5) until monitors.count { |m| m.alive? } == workers
+            end
+          }.should_not raise_error, "Not all workers restarted correctly."
         ensure
           server.stop(true)
           t.join
@@ -172,7 +179,7 @@ describe ServerEngine::MultiSpawnServer do
           end
 
           # Wait for all workers to stop
-          Timeout.timeout(3) do
+          Timeout.timeout(5) do
             sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
           end
 
@@ -181,11 +188,11 @@ describe ServerEngine::MultiSpawnServer do
           mergin_time = 3
 
           Timecop.freeze(Time.now + restart_worker_interval - mergin_time)
-          sleep(1)
+          sleep(1.5)
           monitors.count { |m| m.alive? }.should == 0
 
           Timecop.travel(Time.now + 2 * mergin_time)
-          sleep(1)
+          sleep(1.5)
           monitors.count { |m| m.alive? }.should satisfy { |c| 0 < c && c < workers }
 
           # `start_worker_delay` uses `sleep` inside, so Timecop can't skip this wait.
