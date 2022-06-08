@@ -19,6 +19,7 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = ">= 2.1.0"
 
   gem.add_dependency "sigdump", ["~> 0.2.2"]
+  gem.add_dependency "timecop", ["~> 0.9.5"]
 
   # rake v12.x doesn't work with rspec 2. rspec should be updated to 3
   gem.add_development_dependency "rake", ["~> 11.0"]
