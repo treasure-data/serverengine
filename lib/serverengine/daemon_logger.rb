@@ -55,6 +55,9 @@ module ServerEngine
         # update path string
         old_file_dev = @file_dev
         @file_dev = LogDevice.new(logdev, shift_age: @rotate_age, shift_size: @rotate_size)
+        # Enable to detect rotation done by external tools.
+        # Otherwise it continues writing logs to old file unexpectedly.
+        @file_dev.extend(RotationAware)
         old_file_dev.close if old_file_dev
         @logdev = @file_dev
       end
@@ -130,6 +133,40 @@ module ServerEngine
       nil
     end
 
+    module RotationAware
+      def self.extended(obj)
+        obj.update_ino
+      end
+
+      def update_ino
+        (@ino_mutex ||= Mutex.new).synchronize do
+          @ino = File.stat(filename).ino rescue nil
+          @last_ino_time = Time.now
+        end
+      end
+
+      def reopen(log = nil)
+        super(log)
+        update_ino
+      end
+
+      def reopen!
+        super
+        update_ino
+      end
+
+      def write(message)
+        reopen_needed = false
+        @ino_mutex.synchronize do
+          if (Time.now - @last_ino_time).abs > 1
+            ino = File.stat(filename).ino rescue nil
+            reopen_needed = true if ino && ino != @ino
+          end
+        end
+        reopen! if reopen_needed
+        super(message)
+      end
+    end
   end
 
 end
