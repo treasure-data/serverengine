@@ -333,7 +333,15 @@ module ServerEngine
       end
 
       def send_command(command)
-        @command_sender_pipe.write(command) if @command_sender_pipe
+        pid = @pid
+        return false unless pid
+
+        begin
+          @command_sender_pipe.write(command)
+          return true
+        rescue #Errno::EPIPE
+          return false
+        end
       end
 
       def try_join
