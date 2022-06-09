@@ -80,7 +80,7 @@ module ServerEngine
       if @command_pipe
         Thread.new do
           until @command_pipe.closed?
-            case @command_pipe.gets.chomp
+            case @command_pipe.gets&.chomp
             when "GRACEFUL_STOP"
               s.stop(true)
             when "IMMEDIATE_STOP"
