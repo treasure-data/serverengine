@@ -253,15 +253,21 @@ end
 shared_context 'test server and worker' do
   before { reset_test_state }
 
+  if ServerEngine.windows?
+    WAIT_RATIO = 2
+  else
+    WAIT_RATIO = 1
+  end
+
   def wait_for_fork
-    sleep 1.5
+    sleep 1.5 * WAIT_RATIO
   end
 
   def wait_for_stop
-    sleep 0.8
+    sleep 0.8 * WAIT_RATIO
   end
 
   def wait_for_restart
-    sleep 1.5
+    sleep 1.5 * WAIT_RATIO
   end
 end
