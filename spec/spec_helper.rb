@@ -1,4 +1,9 @@
 require 'bundler'
+require 'rspec'
+
+RSpec.configure do |config|
+  config.color_enabled = true
+end
 
 begin
   Bundler.setup(:default, :test)
