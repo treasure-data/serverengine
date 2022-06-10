@@ -61,7 +61,9 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          # On Windows, it takes some time to stop all multiple processes, so allow leeway to judge.
+          # To prevent the judge before stopping once
+          wait_for_stop
+
           -> {
             Timeout.timeout(5) do
               sleep(0.5) until monitors.count { |m| m.alive? } == workers
@@ -93,9 +95,9 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          # Wait for all workers to stop
+          # Wait for all workers to stop and to be set restarting time
           Timeout.timeout(5) do
-            sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
+            sleep(0.5) until monitors.count { |m| m.alive? || m.restart_at.nil? } == 0
           end
 
           Timecop.freeze
@@ -107,7 +109,6 @@ describe ServerEngine::MultiSpawnServer do
           monitors.count { |m| m.alive? }.should == 0
 
           Timecop.freeze(Time.now + 2 * mergin_time)
-          # On Windows, it takes some time to stop all multiple processes, so allow leeway to judge.
           -> {
             Timeout.timeout(5) do
               sleep(0.5) until monitors.count { |m| m.alive? } == workers
@@ -178,9 +179,9 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          # Wait for all workers to stop
+          # Wait for all workers to stop and to be set restarting time
           Timeout.timeout(5) do
-            sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
+            sleep(0.5) until monitors.count { |m| m.alive? || m.restart_at.nil? } == 0
           end
 
           Timecop.freeze
