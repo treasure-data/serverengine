@@ -149,6 +149,8 @@ module ServerEngine
 
       if @restart_worker_interval > 0
         m.restart_at = Time.now() + @restart_worker_interval
+        print "Worker #{wid} will restart at: "
+        p m.restart_at
       else
         delayed_start_worker(wid)
       end
@@ -169,6 +171,8 @@ module ServerEngine
       end
 
       @monitors[wid] = start_worker(wid)
+      print "Worker #{wid} started at: "
+      p Time.now
     end
   end
 
