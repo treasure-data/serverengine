@@ -39,7 +39,10 @@ module ServerEngine
       def initialize(worker, thread)
         @worker = worker
         @thread = thread
+        @restart_at = nil
       end
+
+      attr_accessor :restart_at
 
       def send_stop(stop_graceful)
         Thread.new do

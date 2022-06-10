@@ -55,8 +55,8 @@ module ServerEngine
 
     def run
       while true
-        num_alive = keepalive_workers
-        break if num_alive == 0
+        num_alive_or_restarting = keepalive_workers
+        break if num_alive_or_restarting == 0
         wait_tick
       end
     end
@@ -85,6 +85,7 @@ module ServerEngine
 
       @start_worker_delay = @config[:start_worker_delay] || 0
       @start_worker_delay_rand = @config[:start_worker_delay_rand] || 0.2
+      @restart_worker_interval = @config[:restart_worker_interval] || 0
 
       scale_workers(@config[:workers] || 1)
 
@@ -96,12 +97,12 @@ module ServerEngine
     end
 
     def keepalive_workers
-      num_alive = 0
+      num_alive_or_restarting = 0
 
       @monitors.each_with_index do |m,wid|
         if m && m.alive?
           # alive
-          num_alive += 1
+          num_alive_or_restarting += 1
 
         elsif m && m.respond_to?(:recoverable?) && !m.recoverable?
           # exited, with unrecoverable exit code
@@ -116,8 +117,12 @@ module ServerEngine
         elsif wid < @num_workers
           # scale up or reboot
           unless @stop
-            @monitors[wid] = delayed_start_worker(wid)
-            num_alive += 1
+            if m
+              restart_worker(wid)
+            else
+              start_new_worker(wid)
+            end
+            num_alive_or_restarting += 1
           end
 
         elsif m
@@ -126,7 +131,27 @@ module ServerEngine
         end
       end
 
-      return num_alive
+      return num_alive_or_restarting
+    end
+
+    def start_new_worker(wid)
+      delayed_start_worker(wid)
+    end
+
+    def restart_worker(wid)
+      m = @monitors[wid]
+
+      is_already_restarting = !m.restart_at.nil?
+      if is_already_restarting
+        delayed_start_worker(wid) if m.restart_at <= Time.now()
+        return
+      end
+
+      if @restart_worker_interval > 0
+        m.restart_at = Time.now() + @restart_worker_interval
+      else
+        delayed_start_worker(wid)
+      end
     end
 
     def delayed_start_worker(wid)
@@ -143,7 +168,7 @@ module ServerEngine
         @last_start_worker_time = now
       end
 
-      start_worker(wid)
+      @monitors[wid] = start_worker(wid)
     end
   end
 

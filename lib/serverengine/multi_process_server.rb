@@ -105,9 +105,11 @@ module ServerEngine
         @unrecoverable_exit_codes = unrecoverable_exit_codes
         @unrecoverable_exit = false
         @exitstatus = nil
+        @restart_at = nil
       end
 
       attr_reader :exitstatus
+      attr_accessor :restart_at
 
       def send_stop(stop_graceful)
         @stop = true

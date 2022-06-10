@@ -27,6 +27,8 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'rake-compiler-dock', ['~> 0.5.0']
   gem.add_development_dependency 'rake-compiler', ['~> 0.9.4']
 
+  gem.add_development_dependency "timecop", ["~> 0.9.5"]
+
   # build gem for a certain platform. see also Rakefile
   fake_platform = ENV['GEM_BUILD_FAKE_PLATFORM'].to_s
   gem.platform = fake_platform unless fake_platform.empty?
