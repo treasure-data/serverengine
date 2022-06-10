@@ -35,12 +35,27 @@ module ServerEngine
 
   def self.ruby_bin_path
     if ServerEngine.windows?
-      require 'windows/library'
-      ruby_path = "\0" * 256
-      Windows::Library::GetModuleFileName.call(0, ruby_path, 256)
-      return ruby_path.rstrip.gsub(/\\/, '/')
+      ServerEngine::Win32.ruby_bin_path
     else
-      return File.join(RbConfig::CONFIG["bindir"], RbConfig::CONFIG["RUBY_INSTALL_NAME"]) + RbConfig::CONFIG["EXEEXT"]
+      File.join(RbConfig::CONFIG["bindir"], RbConfig::CONFIG["RUBY_INSTALL_NAME"]) + RbConfig::CONFIG["EXEEXT"]
+    end
+  end
+
+  if ServerEngine.windows?
+    module Win32
+      require 'fiddle/import'
+
+      extend Fiddle::Importer
+
+      dlload "kernel32"
+      extern "int GetModuleFileNameW(int, void *, int)"
+
+      def self.ruby_bin_path
+        ruby_bin_path_buf = Fiddle::Pointer.malloc(1024)
+        len = GetModuleFileNameW(0, ruby_bin_path_buf, ruby_bin_path_buf.size / 2)
+        path_bytes = ruby_bin_path_buf[0, len * 2]
+        path_bytes.encode('UTF-8', 'UTF-16LE').gsub(/\\/, '/')
+      end
     end
   end
 end

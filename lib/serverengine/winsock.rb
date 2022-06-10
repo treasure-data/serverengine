@@ -99,7 +99,6 @@ module ServerEngine
     extend Fiddle::Importer
 
     dlload "kernel32"
-    extern "int GetModuleFileNameA(int, char *, int)"
     extern "int CloseHandle(int)"
 
     dlload RbConfig::CONFIG['LIBRUBY_SO']
