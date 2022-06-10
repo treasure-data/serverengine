@@ -65,11 +65,11 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          sleep(3)
+          # To prevent the judge before stopping once
+          wait_for_stop
 
-          # On Windows, it takes some time to stop all multiple processes, so allow leeway to judge.
           -> {
-            Timeout.timeout(20) do
+            Timeout.timeout(5) do
               sleep(0.5) until monitors.count { |m| m.alive? } == workers
             end
           }.should_not raise_error, "Not all workers restarted correctly."
@@ -103,9 +103,9 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          # Wait for all workers to stop
+          # Wait for all workers to stop and to be set restarting time
           Timeout.timeout(5) do
-            sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
+            sleep(0.5) until monitors.count { |m| m.alive? || m.restart_at.nil? } == 0
           end
 
           print "All workers stopped at: "
@@ -122,9 +122,8 @@ describe ServerEngine::MultiSpawnServer do
           Timecop.travel(Time.now + 2 * mergin_time)
           print "Waiting for all workers to restart: "
           p Time.now
-          # On Windows, it takes some time to stop all multiple processes, so allow leeway to judge.
           -> {
-            Timeout.timeout(20) do
+            Timeout.timeout(5) do
               sleep(0.5) until monitors.count { |m| m.alive? } == workers
             end
           }.should_not raise_error, "Not all workers restarted correctly."
@@ -206,9 +205,9 @@ describe ServerEngine::MultiSpawnServer do
             m.send_stop(true)
           end
 
-          # Wait for all workers to stop
+          # Wait for all workers to stop and to be set restarting time
           Timeout.timeout(5) do
-            sleep(0.5) until monitors.count { |m| m && m.alive? } == 0
+            sleep(0.5) until monitors.count { |m| m.alive? || m.restart_at.nil? } == 0
           end
 
           print "All workers stopped at: "
