@@ -256,10 +256,12 @@ shared_context 'test server and worker' do
   before { reset_test_state }
   after { Timecop.return }
 
-  if ServerEngine.windows?
-    WAIT_RATIO = 2
-  else
-    WAIT_RATIO = 1
+  unless self.const_defined?(:WAIT_RATIO)
+    if ServerEngine.windows?
+      WAIT_RATIO = 2
+    else
+      WAIT_RATIO = 1
+    end
   end
 
   def wait_for_fork
