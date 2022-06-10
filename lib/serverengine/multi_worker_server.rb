@@ -160,12 +160,10 @@ module ServerEngine
           Kernel.rand * @start_worker_delay * @start_worker_delay_rand -
           @start_worker_delay * @start_worker_delay_rand / 2
 
-        now = Time.now.to_f
-
-        wait = delay - (now - @last_start_worker_time)
+        wait = delay - (Time.now.to_f - @last_start_worker_time)
         sleep wait if wait > 0
 
-        @last_start_worker_time = now
+        @last_start_worker_time = Time.now.to_f
       end
 
       @monitors[wid] = start_worker(wid)
