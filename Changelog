@@ -1,3 +1,15 @@
+2022-06-13 version 2.3.0
+
+* Add restart_worker_interval option to prevent workers restart immediately
+  after kill
+* Reopen log file when rotation done by external tool is detected
+* Fix unexpected behavior of start_worker_delay option
+* Remove windows-pr dependency
+* Fix a potential crash that command_sender_pipe of ProcessManager::Monitor
+  raises error on shutdown
+* Allow to load serverengine/socket_manager without servernegine/utils
+* Fix unstable tests
+
 2022-01-13 version 2.2.5:
 
 * Fix DLL load error on Ruby 3.1 on Windows
