@@ -1,4 +1,5 @@
 require 'stringio'
+require 'timecop'
 
 describe ServerEngine::DaemonLogger do
   before { FileUtils.rm_rf("tmp") }
@@ -171,5 +172,29 @@ describe ServerEngine::DaemonLogger do
     r.close
     $stderr = STDERR
     stderr.should_not =~ /(log shifting failed|log writing failed|log rotation inter-process lock failed)/
+  end
+
+  it 'reopen log when path is renamed' do
+    pending "rename isn't supported on windows" if ServerEngine.windows?
+
+    log = DaemonLogger.new("tmp/rotate.log", { level: 'info', log_rotate_age: 0  })
+
+    log.info '11111'
+    File.read("tmp/rotate.log").should include('11111')
+    File.rename("tmp/rotate.log", "tmp/rotate.log.1")
+
+    Timecop.travel(Time.now + 1)
+
+    log.info '22222'
+    contents = File.read("tmp/rotate.log.1")
+    contents.should include('11111')
+    contents.should include('22222')
+
+    FileUtils.touch("tmp/rotate.log")
+    Timecop.travel(Time.now + 1)
+
+    log.info '33333'
+    File.read("tmp/rotate.log").should include('33333')
+    File.read("tmp/rotate.log.1").should_not include('33333')
   end
 end
