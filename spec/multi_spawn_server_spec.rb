@@ -4,10 +4,25 @@ require 'timecop'
 describe ServerEngine::MultiSpawnServer do
   include_context 'test server and worker'
 
+  before do
+    @log_path = "tmp/multi-worker-test-#{SecureRandom.hex(10)}.log"
+    @logger = ServerEngine::DaemonLogger.new(@log_path)
+  end
+
+  after do
+    FileUtils.rm_rf(@log_path)
+  end
+
   describe 'starts worker processes' do
     context 'with command_sender=pipe' do
       it do
-        config = {workers: 2, command_sender: 'pipe', log_stdout: false, log_stderr: false}
+        config = {
+          workers: 2,
+          command_sender: 'pipe',
+          logger: @logger,
+          log_stdout: false,
+          log_stderr: false
+        }
 
         s = ServerEngine::MultiSpawnServer.new(TestWorker) { config.dup }
         t = Thread.new { s.main }
@@ -32,6 +47,7 @@ describe ServerEngine::MultiSpawnServer do
       {
         workers: workers,
         command_sender: 'pipe',
+        logger: @logger,
         log_stdout: false,
         log_stderr: false,
         start_worker_delay: start_worker_delay,

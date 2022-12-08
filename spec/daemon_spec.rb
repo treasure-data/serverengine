@@ -2,6 +2,14 @@
 describe ServerEngine::Daemon do
   include_context 'test server and worker'
 
+  before do
+    @log_path = "tmp/multi-worker-test-#{SecureRandom.hex(10)}.log"
+  end
+
+  after do
+    FileUtils.rm_rf(@log_path)
+  end
+
   it 'run and graceful stop by signal' do
     pending "not supported signal base commands on Windows" if ServerEngine.windows?
 
@@ -111,6 +119,7 @@ describe ServerEngine::Daemon do
       daemonize: false,
       supervisor: false,
       pid_path: "tmp/pid",
+      logger: ServerEngine::DaemonLogger.new(@log_path),
       log_stdout: false,
       log_stderr: false,
       unrecoverable_exit_codes: [3,4,5],
@@ -135,6 +144,7 @@ describe ServerEngine::Daemon do
       supervisor: false,
       worker_type: 'process',
       pid_path: "tmp/pid",
+      logger: ServerEngine::DaemonLogger.new(@log_path),
       log_stdout: false,
       log_stderr: false,
       unrecoverable_exit_codes: [3,4,5],
@@ -158,6 +168,7 @@ describe ServerEngine::Daemon do
       supervisor: true,
       worker_type: 'process',
       pid_path: "tmp/pid",
+      logger: ServerEngine::DaemonLogger.new(@log_path),
       log_stdout: false,
       log_stderr: false,
       unrecoverable_exit_codes: [3,4,5],

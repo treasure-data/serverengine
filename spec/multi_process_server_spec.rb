@@ -7,10 +7,24 @@ require 'securerandom'
   describe impl_class do
     include_context 'test server and worker'
 
+    before do
+      @log_path = "tmp/multi-worker-test-#{SecureRandom.hex(10)}.log"
+      @logger = ServerEngine::DaemonLogger.new(@log_path)
+    end
+
+    after do
+      FileUtils.rm_rf(@log_path)
+    end
+
     it 'scale up' do
       pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
-      config = {workers: 2, log_stdout: false, log_stderr: false}
+      config = {
+        workers: 2,
+        logger: @logger,
+        log_stdout: false,
+        log_stderr: false,
+      }
 
       s = impl_class.new(TestWorker) { config.dup }
       t = Thread.new { s.main }
@@ -38,7 +52,12 @@ require 'securerandom'
     it 'scale down' do
       pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
-      config = {workers: 2, log_stdout: false, log_stderr: false}
+      config = {
+        workers: 2,
+        logger: @logger,
+        log_stdout: false,
+        log_stderr: false
+      }
 
       s = impl_class.new(TestWorker) { config.dup }
       t = Thread.new { s.main }
@@ -67,7 +86,13 @@ require 'securerandom'
       pending "unrecoverable_exit_codes supported only for multi process workers" if impl_class == ServerEngine::MultiThreadServer
       pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
-      config = {workers: 4, log_stdout: false, log_stderr: false, unrecoverable_exit_codes: [3, 4, 5]}
+      config = {
+        workers: 4,
+        logger: @logger,
+        log_stdout: false,
+        log_stderr: false,
+        unrecoverable_exit_codes: [3, 4, 5]
+      }
 
       s = impl_class.new(TestExitWorker) { config.dup }
       raised_error = nil
@@ -91,7 +116,14 @@ require 'securerandom'
       pending "unrecoverable_exit_codes supported only for multi process workers" if impl_class == ServerEngine::MultiThreadServer
       pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
-      config = {workers: 4, log_stdout: false, log_stderr: false, unrecoverable_exit_codes: [3, 4, 5], stop_immediately_at_unrecoverable_exit: true}
+      config = {
+        workers: 4,
+        logger: @logger,
+        log_stdout: false,
+        log_stderr: false,
+        unrecoverable_exit_codes: [3, 4, 5],
+        stop_immediately_at_unrecoverable_exit: true
+      }
 
       s = impl_class.new(TestExitWorker) { config.dup }
       raised_error = nil
