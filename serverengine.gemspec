@@ -28,4 +28,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency 'rake-compiler', ['~> 0.9.4']
 
   gem.add_development_dependency "timecop", ["~> 0.9.5"]
+  gem.add_development_dependency "rr", ["~> 3.1"]
 end

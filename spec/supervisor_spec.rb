@@ -1,3 +1,4 @@
+require 'rr'
 
 describe ServerEngine::Supervisor do
   include_context 'test server and worker'
@@ -200,6 +201,8 @@ describe ServerEngine::Supervisor do
 
       it 'auto restart in limited ratio' do
         pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+
+        RR.stub(ServerEngine).dump_uncaught_error
 
         sv, t = start_supervisor(RunErrorWorker, server_restart_wait: 1, command_sender: sender)
 
