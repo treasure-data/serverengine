@@ -175,7 +175,7 @@ describe "log level for exited proccess" do
     test_state(:worker_stop).to_i.should == 0
     raised_error.status.should == 5
     log_lines = File.read(@log_path).split("\n")
-    expect(log_lines[1]).to match(/^E, \[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+ #\d+\] ERROR -- : Worker 0 finished unexpectedly with status 5$/)
+    expect(log_lines[1]).to match(/^E, \[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+ #\d+\] ERROR -- : Worker 0 exited unexpectedly with status 5$/)
   end
 
   module TestNormalExitWorker
@@ -209,6 +209,6 @@ describe "log level for exited proccess" do
     end
 
     log_lines = File.read(@log_path).split("\n")
-    expect(log_lines[1]).to match(/^I, \[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+ #\d+\]  INFO -- : Worker 0 finished with status 0$/)
+    expect(log_lines[1]).to match(/^I, \[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+ #\d+\]  INFO -- : Worker 0 exited with status 0$/)
   end
 end
