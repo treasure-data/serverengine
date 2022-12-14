@@ -201,7 +201,7 @@ describe "log level for exited proccess" do
 
     begin
       Timeout.timeout(5) do
-        sleep 1 until File.read(@log_path).include?("INFO -- : Worker 0 finished with status 0")
+        sleep 1 until File.read(@log_path).include?("INFO -- : Worker 0 exited with status 0")
       end
     ensure
       s.stop(true)
