@@ -147,7 +147,11 @@ module ServerEngine
           if @stop
             @worker.logger.info "Worker #{@wid} finished with #{ServerEngine.format_join_status(stat)}"
           else
-            @worker.logger.error "Worker #{@wid} finished unexpectedly with #{ServerEngine.format_join_status(stat)}"
+            if stat.is_a?(Process::Status) && stat.success?
+              @worker.logger.info "Worker #{@wid} exited with #{ServerEngine.format_join_status(stat)}"
+            else
+              @worker.logger.error "Worker #{@wid} exited unexpectedly with #{ServerEngine.format_join_status(stat)}"
+            end
           end
           if stat.is_a?(Process::Status) && stat.exited? && @unrecoverable_exit_codes.include?(stat.exitstatus)
             @unrecoverable_exit = true
