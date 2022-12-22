@@ -1,3 +1,7 @@
+2022-12-22 version 2.3.1
+
+* Don't treat as error when worker shuts down with exit status 0
+
 2022-06-13 version 2.3.0
 
 * Add restart_worker_interval option to prevent workers restart immediately
@@ -13,6 +17,7 @@
 2022-01-13 version 2.2.5:
 
 * Fix DLL load error on Ruby 3.1 on Windows
+* Treat as error when worker shuts down unexpectedly
 
 2021-05-24 version 2.2.4:
 
