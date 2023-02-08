@@ -77,11 +77,10 @@ module ServerEngine
           port = ENV['SERVERENGINE_SOCKETMANAGER_PORT']
           return port.to_i if port
 
-          for port in get_dynamic_port_range
-            if `netstat -na | findstr "#{port}"`.length == 0
-              return port
-            end
-          end
+          excluded_port_ranges = get_excluded_port_ranges
+          get_dynamic_port_range
+            .reject { |port| excluded_port_ranges.any? { |range| range.cover?(port) } }
+            .find { |port| `netstat -na | findstr "#{port}"`.length == 0 }
         else
           base_dir = (ENV['SERVERENGINE_SOCKETMANAGER_SOCK_DIR'] || '/tmp')
           File.join(base_dir, 'SERVERENGINE_SOCKETMANAGER_' + Time.now.utc.iso8601 + '_' + Process.pid.to_s)
@@ -197,6 +196,27 @@ module ServerEngine
             # https://docs.microsoft.com/en-us/troubleshoot/windows-server/networking/default-dynamic-port-range-tcpip-chang
             return 49152..65535
           end
+        end
+
+        def self.get_excluded_port_ranges
+          # Example output of netsh:
+          #
+          # Protocol tcp Port Exclusion Ranges
+          #
+          # Start Port    End Port
+          # ----------    --------
+          #       2869        2869
+          #      49152       49251
+          #      50000       50059     *
+          #      57095       57194
+          #
+          # * - Administered port exclusions.
+          #
+          `netsh int ipv4 show excludedportrange tcp`
+            .force_encoding("ASCII-8BIT")
+            .lines
+            .map { |line| line.match(/\s*(\d+)\s*(\d+)[\s\*]*/) ? $1.to_i..$2.to_i : nil }
+            .compact
         end
       end
     end

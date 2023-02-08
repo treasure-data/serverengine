@@ -1,4 +1,5 @@
 require 'socket'
+require 'rr'
 
 describe ServerEngine::SocketManager do
   include_context 'test server and worker'
@@ -21,9 +22,23 @@ describe ServerEngine::SocketManager do
 
   if ServerEngine.windows?
     context 'Server.generate_path' do
-      it 'returns socket path as port number' do
-        path = SocketManager::Server.generate_path
-        expect(path).to be_between(49152, 65535)
+      context 'with socket path as port number' do
+        it 'returns a port in the dynamic port range' do
+          path = SocketManager::Server.generate_path
+          expect(path).to be_between(49152, 65535)
+        end
+
+        it 'returns a port which is not excluded' do
+          excluded_port_ranges = [
+            49152..49251,
+            50000..50059,
+          ]
+          RR.stub(SocketManager::Server).get_excluded_port_ranges { excluded_port_ranges }
+          path = SocketManager::Server.generate_path
+          excluded_port_ranges.each do |range|
+            expect(path).not_to be_between(range.first, range.last)
+          end
+        end
       end
 
       it 'can be changed via environment variable' do
