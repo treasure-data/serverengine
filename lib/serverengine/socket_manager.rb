@@ -88,8 +88,13 @@ module ServerEngine
         end
       end
 
-      def self.open(path)
-        new(path)
+      def self.open(path = nil)
+        return new(path) unless path.nil?
+        if ServerEngine.windows?
+          new(0)
+        else
+          new(self.generate_path)
+        end
       end
 
       def initialize(path)

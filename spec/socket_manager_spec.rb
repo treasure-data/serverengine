@@ -33,6 +33,13 @@ describe ServerEngine::SocketManager do
         ENV.delete('SERVERENGINE_SOCKETMANAGER_PORT')
       end
     end
+
+    context 'Server.open' do
+      it 'returns server with automatically selected socket path as port number' do
+        server = SocketManager::Server.open
+        expect(server.path).to be_between(49152, 65535)
+      end
+    end
   else
     context 'Server.generate_path' do
       it 'returns socket path under /tmp' do
@@ -45,6 +52,13 @@ describe ServerEngine::SocketManager do
         path = SocketManager::Server.generate_path
         expect(path).to include('/tmp/foo/SERVERENGINE_SOCKETMANAGER_')
         ENV.delete('SERVERENGINE_SOCKETMANAGER_SOCK_DIR')
+      end
+    end
+
+    context 'Server.open' do
+      it 'returns server with automatically selected socket path under /tmp' do
+        server = SocketManager::Server.open
+        expect(server.path).to include('/tmp/SERVERENGINE_SOCKETMANAGER_')
       end
     end
   end

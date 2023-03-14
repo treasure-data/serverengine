@@ -41,8 +41,8 @@ module MyServer
   attr_reader :socket_manager_path
 
   def before_run
-    @socket_manager_path = ServerEngine::SocketManager::Server.generate_path
-    @socket_manager_server = ServerEngine::SocketManager::Server.open(@socket_manager_path)
+    @socket_manager_server = ServerEngine::SocketManager::Server.open
+    @socket_manager_path = @socket_manager_server.path
   rescue Exception => e
     logger.error "unexpected error in server, class #{e.class}: #{e.message}"
     raise
