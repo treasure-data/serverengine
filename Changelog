@@ -1,3 +1,9 @@
+2023-03-14 version 2.3.2
+
+* Accept `nil` for `ServerEngine::SocketManager::Server.open` to select path automatically
+* Care excluded port ranges of Windows in `ServerEngine::SocketManager.generate_path`
+* Update to Rake 13 and RSpec 3 to support running tests on Ruby 3.2
+
 2022-12-22 version 2.3.1
 
 * Don't treat as error when worker shuts down with exit status 0
