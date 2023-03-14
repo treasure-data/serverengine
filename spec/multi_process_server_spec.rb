@@ -17,7 +17,7 @@ require 'securerandom'
     end
 
     it 'scale up' do
-      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
+      skip "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {
         workers: 2,
@@ -50,7 +50,7 @@ require 'securerandom'
     end
 
     it 'scale down' do
-      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
+      skip "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {
         workers: 2,
@@ -98,7 +98,7 @@ end
     end
 
     it 'raises SystemExit when all workers exit with specified code by unrecoverable_exit_codes' do
-      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
+      skip "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {
         workers: 4,
@@ -127,7 +127,7 @@ end
     end
 
     it 'raises SystemExit immediately when a worker exits if stop_immediately_at_unrecoverable_exit specified' do
-      pending "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
+      skip "Windows environment does not support fork" if ServerEngine.windows? && impl_class == ServerEngine::MultiProcessServer
 
       config = {
         workers: 4,
@@ -172,7 +172,7 @@ describe "log level for exited proccess" do
   end
 
   it 'stop' do
-    pending "Windows environment does not support fork" if ServerEngine.windows?
+    skip "Windows environment does not support fork" if ServerEngine.windows?
 
     config = {
       workers: 1,
@@ -197,7 +197,7 @@ describe "log level for exited proccess" do
   end
 
   it 'non zero exit status' do
-    pending "Windows environment does not support fork" if ServerEngine.windows?
+    skip "Windows environment does not support fork" if ServerEngine.windows?
 
     config = {
       workers: 1,
@@ -232,7 +232,7 @@ describe "log level for exited proccess" do
   end
 
   it 'zero exit status' do
-    pending "Windows environment does not support fork" if ServerEngine.windows?
+    skip "Windows environment does not support fork" if ServerEngine.windows?
 
     config = {
       workers: 1,

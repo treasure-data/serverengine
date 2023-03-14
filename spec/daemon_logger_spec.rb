@@ -150,7 +150,7 @@ describe ServerEngine::DaemonLogger do
   end
 
   it 'inter-process locking on rotation' do
-    pending "fork is not implemented in Windows" if ServerEngine.windows?
+    skip "fork is not implemented in Windows" if ServerEngine.windows?
 
     log = DaemonLogger.new("tmp/se4.log", level: 'trace', log_rotate_age: 3, log_rotate_size: 10)
     r, w = IO.pipe
@@ -175,7 +175,7 @@ describe ServerEngine::DaemonLogger do
   end
 
   it 'reopen log when path is renamed' do
-    pending "rename isn't supported on windows" if ServerEngine.windows?
+    skip "rename isn't supported on windows" if ServerEngine.windows?
 
     log = DaemonLogger.new("tmp/rotate.log", { level: 'info', log_rotate_age: 0  })
 

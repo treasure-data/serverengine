@@ -11,7 +11,7 @@ describe ServerEngine::Daemon do
   end
 
   it 'run and graceful stop by signal' do
-    pending "not supported signal base commands on Windows" if ServerEngine.windows?
+    skip "not supported signal base commands on Windows" if ServerEngine.windows?
 
     dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", command_sender: "signal")
     dm.main
@@ -33,7 +33,7 @@ describe ServerEngine::Daemon do
   end
 
   it 'signals' do
-    pending "not supported signal base commands on Windows" if ServerEngine.windows?
+    skip "not supported signal base commands on Windows" if ServerEngine.windows?
     dm = Daemon.new(TestServer, TestWorker, daemonize: true, pid_path: "tmp/pid", command_sender: "signal")
     dm.main
 
@@ -112,7 +112,7 @@ describe ServerEngine::Daemon do
   end
 
   it 'exits with status 0 when it was stopped normally' do
-    pending "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
+    skip "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
     dm = Daemon.new(
       TestServer,
       TestWorker,
@@ -135,7 +135,7 @@ describe ServerEngine::Daemon do
   end
 
   it 'exits with status of workers if worker exits with status specified in unrecoverable_exit_codes, without supervisor' do
-    pending "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
+    skip "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
 
     dm = Daemon.new(
       TestServer,
@@ -159,7 +159,7 @@ describe ServerEngine::Daemon do
   end
 
   it 'exits with status of workers if worker exits with status specified in unrecoverable_exit_codes, with supervisor' do
-    pending "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
+    skip "worker type process(fork) cannot be used in Windows" if ServerEngine.windows?
 
     dm = Daemon.new(
       TestServer,
