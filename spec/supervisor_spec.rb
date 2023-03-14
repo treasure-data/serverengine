@@ -90,7 +90,7 @@ describe ServerEngine::Supervisor do
     context "when using #{sender} as command_sender" do
 
       it 'start and graceful stop' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        skip 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
 
         sv, t = start_supervisor(command_sender: sender)
 
@@ -113,7 +113,7 @@ describe ServerEngine::Supervisor do
       end
 
       it 'immediate stop' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        skip 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
 
         sv, t = start_supervisor(command_sender: sender)
 
@@ -131,7 +131,7 @@ describe ServerEngine::Supervisor do
       end
 
       it 'graceful restart' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        skip 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
 
         sv, t = start_supervisor(command_sender: sender)
 
@@ -155,7 +155,7 @@ describe ServerEngine::Supervisor do
       end
 
       it 'immediate restart' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        skip 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
 
         sv, t = start_supervisor(command_sender: sender)
 
@@ -179,7 +179,7 @@ describe ServerEngine::Supervisor do
       end
 
       it 'reload' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        skip 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
 
         sv, t = start_supervisor(command_sender: sender)
 
@@ -200,7 +200,7 @@ describe ServerEngine::Supervisor do
       # TODO detach
 
       it 'auto restart in limited ratio' do
-        pending 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
+        skip 'not supported on Windows' if ServerEngine.windows? && sender == 'signal'
 
         RR.stub(ServerEngine).dump_uncaught_error
 
