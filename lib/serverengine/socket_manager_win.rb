@@ -58,6 +58,26 @@ module ServerEngine
     end
 
     module ServerModule
+      def start_server(addr)
+        # We need to take care about selecting an available port.
+        # By passing `nil` or `0` as `addr`, an available port is automatically selected.
+        # However, we should consider using NamedPipe instead of TCPServer.
+        @server = TCPServer.new("127.0.0.1", addr)
+        @thread = Thread.new do
+          begin
+            while peer = @server.accept
+              Thread.new(peer, &method(:process_peer))  # process_peer calls send_socket
+            end
+          rescue => e
+            unless @server.closed?
+              ServerEngine.dump_uncaught_error(e)
+            end
+          end
+        end
+
+        return @server.addr[1]
+      end
+
       private
 
       TCP_OPTIONS = [Socket::SOCK_STREAM, Socket::IPPROTO_TCP, TCPServer, true]
@@ -105,26 +125,6 @@ module ServerEngine
 
       def htons(h)
         [h].pack("S").unpack("n")[0]
-      end
-
-      def start_server(addr)
-        # We need to take care about selecting an available port.
-        # By passing `nil` or `0` as `addr`, an available port is automatically selected.
-        # However, we should consider using NamedPipe instead of TCPServer.
-        @server = TCPServer.new("127.0.0.1", addr)
-        @thread = Thread.new do
-          begin
-            while peer = @server.accept
-              Thread.new(peer, &method(:process_peer))  # process_peer calls send_socket
-            end
-          rescue => e
-            unless @server.closed?
-              ServerEngine.dump_uncaught_error(e)
-            end
-          end
-        end
-
-        return @server.addr[1]
       end
 
       def stop_server

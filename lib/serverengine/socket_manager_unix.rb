@@ -47,6 +47,63 @@ module ServerEngine
     end
 
     module ServerModule
+      def start_server(path)
+        # return absolute path so that client can connect to this path
+        # when client changed working directory
+        path = File.expand_path(path)
+
+        begin
+          old_umask = File.umask(0077) # Protect unix socket from other users
+          @server = UNIXServer.new(path)
+        ensure
+          File.umask(old_umask)
+        end
+
+        @thread = Thread.new do
+          begin
+            while peer = @server.accept
+              Thread.new(peer, &method(:process_peer))  # process_peer calls send_socket
+            end
+          rescue => e
+            unless @server.closed?
+              ServerEngine.dump_uncaught_error(e)
+            end
+          end
+        end
+
+        return path
+      end
+
+      def take_over_another_server
+        another_server = UNIXSocket.new(@path)
+        begin
+          idx = 0
+          while true
+            SocketManager.send_peer(another_server, [Process.pid, :get_listening_tcp, idx])
+            key = SocketManager.recv_peer(another_server)
+            break if key.nil?
+            @tcp_sockets[key] = another_server.recv_io TCPServer
+            idx += 1
+          end
+
+          idx = 0
+          while true
+            SocketManager.send_peer(another_server, [Process.pid, :get_listening_udp, idx])
+            key = SocketManager.recv_peer(another_server)
+            break if key.nil?
+            @udp_sockets[key] = another_server.recv_io UDPSocket
+            idx += 1
+          end
+
+          FileUtils.rm_f(@path)
+          start_server(@path)
+
+          SocketManager.send_peer(another_server, [Process.pid, :stop_with_socket_alive])
+        ensure
+          another_server.close
+        end
+      end
+
       private
 
       def listen_tcp_new(bind_ip, port)
@@ -76,33 +133,6 @@ module ServerEngine
         UDPSocket.for_fd(usock.fileno)
       end
 
-      def start_server(path)
-        # return absolute path so that client can connect to this path
-        # when client changed working directory
-        path = File.expand_path(path)
-
-        begin
-          old_umask = File.umask(0077) # Protect unix socket from other users
-          @server = UNIXServer.new(path)
-        ensure
-          File.umask(old_umask)
-        end
-
-        @thread = Thread.new do
-          begin
-            while peer = @server.accept
-              Thread.new(peer, &method(:process_peer))  # process_peer calls send_socket
-            end
-          rescue => e
-            unless @server.closed?
-              ServerEngine.dump_uncaught_error(e)
-            end
-          end
-        end
-
-        return path
-      end
-
       def stop_server
         @tcp_sockets.reject! {|key,lsock| lsock.close; true }
         @udp_sockets.reject! {|key,usock| usock.close; true }
@@ -111,19 +141,35 @@ module ServerEngine
         @thread.join if RUBY_VERSION >= "2.2"
       end
 
-      def send_socket(peer, pid, method, bind, port)
-        sock = case method
-               when :listen_tcp
-                 listen_tcp(bind, port)
-               when :listen_udp
-                 listen_udp(bind, port)
-               else
-                 raise ArgumentError, "Unknown method: #{method.inspect}"
-               end
-
-        SocketManager.send_peer(peer, nil)
-
-        peer.send_io sock
+      def send_socket(peer, pid, method, *opts)
+        case method
+        when :listen_tcp
+          bind, port = opts
+          sock = listen_tcp(bind, port)
+          SocketManager.send_peer(peer, nil)
+          peer.send_io sock
+        when :listen_udp
+          bind, port = opts
+          sock = listen_udp(bind, port)
+          SocketManager.send_peer(peer, nil)
+          peer.send_io sock
+        when :get_listening_tcp
+          idx, = opts
+          key = @tcp_sockets.keys[idx]
+          SocketManager.send_peer(peer, key)
+          peer.send_io(@tcp_sockets.values[idx]) if key
+        when :get_listening_udp
+          idx, = opts
+          key = @udp_sockets.keys[idx]
+          SocketManager.send_peer(peer, key)
+          peer.send_io(@udp_sockets.values[idx]) if key
+        when :stop_with_socket_alive
+          @tcp_sockets.clear
+          @udp_sockets.clear
+          stop_server
+        else
+          raise ArgumentError, "Unknown method: #{method.inspect}"
+        end
       end
     end
 
