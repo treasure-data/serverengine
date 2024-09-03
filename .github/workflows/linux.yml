@@ -23,7 +23,6 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
       - name: Install dependencies
         run: |
-          gem install bundler rake
           bundle install --jobs 4 --retry 3
       - name: Run tests
         env:
