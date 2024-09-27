@@ -56,7 +56,7 @@ module ServerEngine
     def run
       while true
         num_alive_or_restarting = keepalive_workers
-        break if num_alive_or_restarting == 0
+        break if num_alive_or_restarting == 0 && @num_workers != 0
         wait_tick
       end
     end
