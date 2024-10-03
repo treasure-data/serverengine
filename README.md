@@ -413,8 +413,14 @@ se = ServerEngine.create(MyServer, MyWorker, {
 se.run
 ```
 
-See also [examples](https://github.com/fluent/serverengine/tree/master/examples).
+Other features:
 
+- `socket_manager_server = SocketManager::Server.take_over_another_server(path)`
+  - It starts a new manager server that has all UDP/TCP sockets of the existing manager.
+  - It receives the sockets and stops the existing manager after starts a new manager.
+  - It means that another process can take over UDP/TCP sockets without downtime.
+
+See also [examples](https://github.com/fluent/serverengine/tree/master/examples).
 
 ## Module API
 
