@@ -47,6 +47,38 @@ module ServerEngine
     end
 
     module ServerModule
+      def share_sockets_with_another_server
+        another_server = UNIXSocket.new(@path)
+        begin
+          idx = 0
+          while true
+            SocketManager.send_peer(another_server, [Process.pid, :share_udp, idx])
+            key = SocketManager.recv_peer(another_server)
+            break if key.nil?
+            @udp_sockets[key] = another_server.recv_io UDPSocket
+            idx += 1
+          end
+
+          idx = 0
+          while true
+            SocketManager.send_peer(another_server, [Process.pid, :share_tcp, idx])
+            key = SocketManager.recv_peer(another_server)
+            break if key.nil?
+            @tcp_sockets[key] = another_server.recv_io TCPServer
+            idx += 1
+          end
+
+          SocketManager.send_peer(another_server, [Process.pid, :share_unix])
+          res = SocketManager.recv_peer(another_server)
+          raise res if res.is_a?(Exception)
+          @server = another_server.recv_io UNIXServer
+
+          start_server(@path)
+        ensure
+          another_server.close
+        end
+      end
+
       private
 
       def listen_tcp_new(bind_ip, port)
@@ -77,15 +109,17 @@ module ServerEngine
       end
 
       def start_server(path)
-        # return absolute path so that client can connect to this path
-        # when client changed working directory
-        path = File.expand_path(path)
+        unless @server
+          # return absolute path so that client can connect to this path
+          # when client changed working directory
+          path = File.expand_path(path)
 
-        begin
-          old_umask = File.umask(0077) # Protect unix socket from other users
-          @server = UNIXServer.new(path)
-        ensure
-          File.umask(old_umask)
+          begin
+            old_umask = File.umask(0077) # Protect unix socket from other users
+            @server = UNIXServer.new(path)
+          ensure
+            File.umask(old_umask)
+          end
         end
 
         @thread = Thread.new do
@@ -111,19 +145,34 @@ module ServerEngine
         @thread.join if RUBY_VERSION >= "2.2"
       end
 
-      def send_socket(peer, pid, method, bind, port)
-        sock = case method
-               when :listen_tcp
-                 listen_tcp(bind, port)
-               when :listen_udp
-                 listen_udp(bind, port)
-               else
-                 raise ArgumentError, "Unknown method: #{method.inspect}"
-               end
-
-        SocketManager.send_peer(peer, nil)
-
-        peer.send_io sock
+      def send_socket(peer, pid, method, *opts)
+        case method
+        when :listen_tcp
+          bind, port = opts
+          sock = listen_tcp(bind, port)
+          SocketManager.send_peer(peer, nil)
+          peer.send_io sock
+        when :listen_udp
+          bind, port = opts
+          sock = listen_udp(bind, port)
+          SocketManager.send_peer(peer, nil)
+          peer.send_io sock
+        when :share_tcp
+          idx, = opts
+          key = @tcp_sockets.keys[idx]
+          SocketManager.send_peer(peer, key)
+          peer.send_io(@tcp_sockets.values[idx]) if key
+        when :share_udp
+          idx, = opts
+          key = @udp_sockets.keys[idx]
+          SocketManager.send_peer(peer, key)
+          peer.send_io(@udp_sockets.values[idx]) if key
+        when :share_unix
+          SocketManager.send_peer(peer, nil)
+          peer.send_io @server
+        else
+          raise ArgumentError, "Unknown method: #{method.inspect}"
+        end
       end
     end
 
