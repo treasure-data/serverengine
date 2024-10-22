@@ -1,3 +1,8 @@
+2024-10-22 version 2.4.0
+
+* Add missing base64 and logger gem as dependency for Ruby 3.4 and 3.5.
+* socket_manager: add feature to share sockets with another server.
+
 2023-03-14 version 2.3.2
 
 * Accept `nil` for `ServerEngine::SocketManager::Server.open` to select path automatically
