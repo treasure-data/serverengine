@@ -413,8 +413,15 @@ se = ServerEngine.create(MyServer, MyWorker, {
 se.run
 ```
 
-See also [examples](https://github.com/fluent/serverengine/tree/master/examples).
+Other features:
 
+- `socket_manager_server = SocketManager::Server.share_sockets_with_another_server(path)`
+  - It starts a new manager server that shares all UDP/TCP sockets with the existing manager.
+  - We can use this for live restart for network servers.
+  - The old process should stop without removing the file for the socket after the new process starts.
+  - Limitation: This feature would not work well if the process opens new TCP ports frequently.
+
+See also [examples](https://github.com/fluent/serverengine/tree/master/examples).
 
 ## Module API
 

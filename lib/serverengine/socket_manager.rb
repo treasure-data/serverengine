@@ -96,17 +96,30 @@ module ServerEngine
         end
       end
 
-      def initialize(path)
+      def self.share_sockets_with_another_server(path)
+        raise NotImplementedError, "Not supported on Windows." if ServerEngine.windows?
+        server = new(path, start: false)
+        server.share_sockets_with_another_server
+        server
+      end
+
+      def initialize(path, start: true)
         @tcp_sockets = {}
         @udp_sockets = {}
         @mutex = Mutex.new
-        @path = start_server(path)
+        @path = start ? start_server(path) : path
       end
 
       attr_reader :path
+      attr_reader :tcp_sockets, :udp_sockets # for tests
 
       def new_client
         Client.new(@path)
+      end
+
+      def start
+        start_server(path)
+        nil
       end
 
       def close
@@ -159,9 +172,9 @@ module ServerEngine
           res = SocketManager.recv_peer(peer)
           return if res.nil?
 
-          pid, method, bind, port = *res
+          pid, method, *opts = res
           begin
-            send_socket(peer, pid, method, bind, port)
+            send_socket(peer, pid, method, *opts)
           rescue => e
             SocketManager.send_peer(peer, e)
           end

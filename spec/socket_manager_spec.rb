@@ -55,6 +55,15 @@ describe ServerEngine::SocketManager do
         expect(server.path).to be_between(49152, 65535)
       end
     end
+
+    context 'Server.share_sockets_with_another_server' do
+      it 'not supported' do
+        server = SocketManager::Server.open(server_path)
+        expect { SocketManager::Server.share_sockets_with_another_server(server_path) }.to raise_error(NotImplementedError)
+      ensure
+        server.close
+      end
+    end
   else
     context 'Server.generate_path' do
       it 'returns socket path under /tmp' do
@@ -74,6 +83,165 @@ describe ServerEngine::SocketManager do
       it 'returns server with automatically selected socket path under /tmp' do
         server = SocketManager::Server.open
         expect(server.path).to include('/tmp/SERVERENGINE_SOCKETMANAGER_')
+      end
+    end
+
+    context 'Server.share_sockets_with_another_server' do
+      it 'shares listen sockets to another server' do
+        server = SocketManager::Server.open(server_path)
+
+        client = SocketManager::Client.new(server_path)
+        tcp1 = client.listen_tcp('127.0.0.1', 55551)
+        udp1 = client.listen_udp('127.0.0.1', 55561)
+        udp2 = client.listen_udp('127.0.0.1', 55562)
+
+        another_server = SocketManager::Server.share_sockets_with_another_server(server_path)
+
+        expect([
+          another_server.tcp_sockets.keys,
+          another_server.tcp_sockets.values.map(&:addr),
+          another_server.udp_sockets.keys,
+          another_server.udp_sockets.values.map(&:addr),
+        ]).to eq([
+          server.tcp_sockets.keys,
+          server.tcp_sockets.values.map(&:addr),
+          server.udp_sockets.keys,
+          server.udp_sockets.values.map(&:addr),
+        ])
+      ensure
+        tcp1&.close
+        udp1&.close
+        udp2&.close
+        server&.close
+        another_server&.close
+      end
+
+      it 'takes over TCP sockets without downtime' do
+        manager_server = SocketManager::Server.open(server_path)
+        manager_client = SocketManager::Client.new(server_path)
+
+        has_server_started = false
+        # The old server starts listening
+        thread_server = Thread.new do
+          server = manager_client.listen_tcp('127.0.0.1', test_port)
+          has_server_started = true
+          while socket = server.accept
+            incr_test_state(:count)
+            socket.close
+          end
+        ensure
+          server&.close
+        end
+
+        sleep 0.1 until has_server_started
+
+        # The client starts sending data
+        thread_client = Thread.new do
+          100.times do |i|
+            socket = TCPSocket.new('127.0.0.1', test_port)
+            begin
+              socket.write("Hello #{i}\n")
+            ensure
+              socket.close
+            end
+            sleep 0.01
+          end
+        end
+
+        sleep 0.5
+
+        # The new server shares the sockets and starts listening in parallel with the old one
+        thread_new_server = Thread.new do
+          new_manager_server = SocketManager::Server.share_sockets_with_another_server(server_path)
+          server = manager_client.listen_tcp('127.0.0.1', test_port)
+          while socket = server.accept
+            incr_test_state(:count)
+            socket.close
+          end
+        ensure
+          new_manager_server&.close
+          server&.close
+        end
+
+        # Stop the old server
+        sleep 0.1
+        thread_server.kill
+        thread_server.join
+
+        thread_client.join
+        wait_for_stop
+
+        # Confirm that server switching was completed without data loss
+        expect(test_state(:count)).to eq(100)
+      ensure
+        manager_server&.close
+        thread_server&.kill
+        thread_new_server&.kill
+        thread_server&.join
+        thread_new_server&.join
+      end
+
+      it 'takes over UDP sockets without downtime' do
+        manager_server = SocketManager::Server.open(server_path)
+        manager_client = SocketManager::Client.new(server_path)
+
+        has_server_started = false
+        # The old server starts listening
+        thread_server = Thread.new do
+          server = manager_client.listen_udp('127.0.0.1', test_port)
+          has_server_started = true
+          while server.recv(10)
+            incr_test_state(:count)
+          end
+        ensure
+          server&.close
+        end
+
+        sleep 0.1 until has_server_started
+
+        # The client starts sending data
+        thread_client = Thread.new do
+          100.times do |i|
+            socket = UDPSocket.new
+            begin
+              socket.send("Hello #{i}\n", 0, "127.0.0.1", test_port)
+            ensure
+              socket.close
+            end
+            sleep 0.01
+          end
+        end
+
+        sleep 0.5
+
+        # The new server shares the sockets and starts listening in parallel with the old one
+        thread_new_server = Thread.new do
+          new_manager_server = SocketManager::Server.share_sockets_with_another_server(server_path)
+          server = manager_client.listen_udp('127.0.0.1', test_port)
+          while server.recv(10)
+            incr_test_state(:count)
+          end
+        ensure
+          new_manager_server&.close
+          server&.close
+        end
+
+        # Stop the old server
+        sleep 0.1
+        thread_server.kill
+        thread_server.join
+
+        thread_client.join
+        wait_for_stop
+
+        # Confirm that server switching was completed without data loss
+        expect(test_state(:count)).to eq(100)
+      ensure
+        manager_server&.close
+        thread_server&.kill
+        thread_new_server&.kill
+        thread_server&.join
+        thread_new_server&.join
       end
     end
   end
