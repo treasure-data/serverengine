@@ -232,7 +232,7 @@ se = ServerEngine.create(nil, MyWorker, {
 se.run
 ```
 
-This auto restart reature will be suppressed for workers which exits with exit code specified by `unrecoverable_exit_codes`. At this case, whole process will exit without error (exit code 0).
+This auto restart feature will be suppressed for workers which exits with exit code specified by `unrecoverable_exit_codes`. At this case, whole process will exit without error (exit code 0).
 
 ## Live restart
 
